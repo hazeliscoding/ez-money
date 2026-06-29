@@ -1,6 +1,6 @@
 /**
  * Parse the Chime "Combined Account Activity" lines into raw transactions.
- * Port of ezmoney/parser.py. Combined-activity rows have six fields:
+ * Combined-activity rows have six fields:
  *   <txn date> <description> <type> <amount> <account> <settlement date>
  * The later per-account billing sections are five-field, so this strict regex
  * ignores them (no double-counting).

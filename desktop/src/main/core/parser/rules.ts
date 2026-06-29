@@ -1,5 +1,5 @@
 /**
- * Clean + categorize raw transactions. Port of ezmoney/rules.py.
+ * Clean + categorize raw transactions.
  * 1. Drop Chime Credit Builder plumbing (and the user exclude list).
  * 2. Income vs. expense by amount sign (after plumbing removed).
  * 3. Categorize via category-rules.json (ordered, first match wins).

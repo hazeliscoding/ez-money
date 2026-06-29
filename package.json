@@ -4,11 +4,11 @@
   "private": true,
   "description": "ez-money — a local desktop app (Electron) to import Chime statements and track budgets.",
   "scripts": {
-    "setup": "cd frontend && npm install && cd ../desktop && npm install",
+    "setup": "cd desktop && npm install && cd renderer && npm install",
     "dev": "concurrently -k -n web,app -c cyan,green \"npm run dev:web\" \"npm run dev:app\"",
-    "dev:web": "cd frontend && npm start",
+    "dev:web": "cd desktop/renderer && npm start",
     "dev:app": "wait-on http://localhost:4200 && cd desktop && npm run build:main && cross-env ELECTRON_RENDERER_URL=http://localhost:4200 npm start",
-    "build": "cd frontend && npm run build && cd ../desktop && npm run build:main",
+    "build": "cd desktop/renderer && npm run build && cd .. && npm run build:main",
     "package": "npm run build && cd desktop && npm run package",
     "package:win": "npm run build && cd desktop && npm run package:win",
     "package:linux": "npm run build && cd desktop && npm run package:linux"

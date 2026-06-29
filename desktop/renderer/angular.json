@@ -39,7 +39,7 @@
           "builder": "@angular-devkit/build-angular:application",
           "options": {
             "outputPath": {
-              "base": "../desktop/dist/renderer",
+              "base": "../dist/renderer",
               "browser": ""
             },
             "baseHref": "./",

@@ -1,0 +1,37 @@
+<div class="app">
+  <header class="app-header">
+    <a class="wordmark" routerLink="/dashboard">ez-money</a>
+    <div class="header-right">
+      <label>
+        Period
+        <select
+          [value]="periodSvc.selected()"
+          (change)="onPeriodChange($any($event.target).value)"
+        >
+          @if (!periodSvc.hasPeriods()) {
+            <option value="">— no periods —</option>
+          }
+          @for (p of periodSvc.periods(); track p) {
+            <option [value]="p">{{ p }}</option>
+          }
+        </select>
+      </label>
+      <a routerLink="/import">Import</a>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <aside class="sidebar">
+      <nav>
+        <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        <a routerLink="/transactions" routerLinkActive="active">Transactions</a>
+        <a routerLink="/budgets" routerLinkActive="active">Budgets</a>
+        <a routerLink="/import" routerLinkActive="active">Import</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <router-outlet />
+    </main>
+  </div>
+</div>

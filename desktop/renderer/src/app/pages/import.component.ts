@@ -1,0 +1,153 @@
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { ApiService } from '../api.service';
+import { PeriodService } from '../period.service';
+import { ImportResult } from '../models';
+import { MoneyPipe } from '../money.pipe';
+
+@Component({
+  selector: 'app-import',
+  standalone: true,
+  imports: [MoneyPipe, DecimalPipe, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="breadcrumb">Import</div>
+    <h1>Import Statement</h1>
+    <p class="secondary meta">Upload a bank/credit-card statement PDF to import its transactions.</p>
+
+    <div
+      class="dropzone"
+      [class.dragover]="dragover()"
+      (click)="picker.click()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+    >
+      <div>Drop a PDF here, or click to choose a file.</div>
+      @if (file(); as f) {
+        <div class="file-name">{{ f.name }} ({{ (f.size / 1024) | number: '1.0-0' }} KB)</div>
+      }
+    </div>
+    <input
+      #picker
+      type="file"
+      accept="application/pdf"
+      hidden
+      (change)="onFileSelected($any($event.target).files)"
+    />
+
+    <div class="actions">
+      <button class="btn-primary" (click)="upload()" [disabled]="!file() || uploading()">
+        {{ uploading() ? 'Importing…' : 'Import' }}
+      </button>
+      @if (file()) {
+        <button (click)="clear()" [disabled]="uploading()">Clear</button>
+      }
+    </div>
+
+    @if (error()) { <div class="status error">{{ error() }}</div> }
+
+    @if (result(); as r) {
+      <div class="section">
+        <h2>Import Complete</h2>
+        <div class="status ok">Imported <strong>{{ r.imported }}</strong> transaction(s).</div>
+        <table style="max-width:420px; margin-top:12px">
+          <tbody>
+            <tr><td>Periods</td><td class="num">{{ r.periods.join(', ') || '—' }}</td></tr>
+            <tr><td>Imported</td><td class="num">{{ r.imported }}</td></tr>
+            <tr><td>Income</td><td class="num pos">{{ r.income | money }}</td></tr>
+            <tr><td>Expense</td><td class="num neg">{{ r.expense | money }}</td></tr>
+            <tr><td>Net</td><td class="num" [class.pos]="r.net >= 0" [class.neg]="r.net < 0">{{ r.net | money }}</td></tr>
+          </tbody>
+        </table>
+
+        @if (r.uncategorized.length) {
+          <div class="section">
+            <h3>Uncategorized Merchants ({{ r.uncategorized.length }})</h3>
+            <p class="secondary">
+              These merchants had no matching rule. Set a category on the
+              <a routerLink="/transactions">Transactions</a> page, or add a rule in
+              <code>category-rules.json</code> to auto-categorize them next time.
+            </p>
+            <ul class="plain">
+              @for (m of r.uncategorized; track m) {
+                <li>{{ m }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    }
+  `,
+})
+export class ImportComponent {
+  private readonly api = inject(ApiService);
+  private readonly periodSvc = inject(PeriodService);
+
+  readonly file = signal<File | null>(null);
+  readonly uploading = signal<boolean>(false);
+  readonly dragover = signal<boolean>(false);
+  readonly error = signal<string | null>(null);
+  readonly result = signal<ImportResult | null>(null);
+
+  onFileSelected(files: FileList | null): void {
+    if (files && files.length) this.setFile(files[0]);
+  }
+
+  onDragOver(e: DragEvent): void {
+    e.preventDefault();
+    this.dragover.set(true);
+  }
+
+  onDragLeave(e: DragEvent): void {
+    e.preventDefault();
+    this.dragover.set(false);
+  }
+
+  onDrop(e: DragEvent): void {
+    e.preventDefault();
+    this.dragover.set(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length) this.setFile(files[0]);
+  }
+
+  private setFile(f: File): void {
+    this.error.set(null);
+    this.result.set(null);
+    if (f.type && f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
+      this.error.set('Please choose a PDF file.');
+      this.file.set(null);
+      return;
+    }
+    this.file.set(f);
+  }
+
+  clear(): void {
+    this.file.set(null);
+    this.result.set(null);
+    this.error.set(null);
+  }
+
+  upload(): void {
+    const f = this.file();
+    if (!f) return;
+    this.uploading.set(true);
+    this.error.set(null);
+    this.result.set(null);
+    this.api.import(f).subscribe({
+      next: (res) => {
+        this.result.set(res);
+        this.uploading.set(false);
+        this.file.set(null);
+        // Refresh shared period list so new periods appear and become selectable.
+        this.periodSvc.refresh();
+      },
+      error: (err) => {
+        this.uploading.set(false);
+        const detail = String(err?.message ?? err ?? '').replace(/^Error invoking remote method '[^']*':\s*/, '');
+        this.error.set(detail ? `Import failed: ${detail}` : 'Import failed — is this a valid Chime statement PDF?');
+      },
+    });
+  }
+}

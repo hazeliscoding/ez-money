@@ -1,4 +1,4 @@
-/** Canonical category set + default budgets. Mirrors ezmoney/config.py. */
+/** Canonical category set + default budgets. */
 export const CATEGORIES = [
   'Rent',
   'Utilities',

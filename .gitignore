@@ -22,24 +22,6 @@ docs/statements/**/*.pdf
 ~$*.xlsx
 
 # ──────────────────────────────────────────────────────────────
-# Python
-# ──────────────────────────────────────────────────────────────
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.eggs/
-build/
-dist/
-.venv/
-venv/
-env/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.ipynb_checkpoints/
-
-# ──────────────────────────────────────────────────────────────
 # OS / editor cruft
 # ──────────────────────────────────────────────────────────────
 .DS_Store
@@ -55,7 +37,7 @@ desktop.ini
 **/.env
 
 # ──────────────────────────────────────────────────────────────
-# Node / Angular / Nest (backend/ and frontend/)
+# Node / Electron / Angular (desktop/ + desktop/renderer/)
 # ──────────────────────────────────────────────────────────────
 node_modules/
 dist/
