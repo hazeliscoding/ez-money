@@ -66,9 +66,9 @@ import { MoneyPipe } from '../money.pipe';
           <div class="section">
             <h3>Uncategorized Merchants ({{ r.uncategorized.length }})</h3>
             <p class="secondary">
-              These merchants had no matching rule. Add them to <code>category_rules.json</code>
-              (in the backend) to auto-categorize them next time, or set a category on the
-              <a routerLink="/transactions">Transactions</a> page.
+              These merchants had no matching rule. Set a category on the
+              <a routerLink="/transactions">Transactions</a> page, or add a rule in
+              <code>category-rules.json</code> to auto-categorize them next time.
             </p>
             <ul class="plain">
               @for (m of r.uncategorized; track m) {
@@ -143,9 +143,10 @@ export class ImportComponent {
         // Refresh shared period list so new periods appear and become selectable.
         this.periodSvc.refresh();
       },
-      error: () => {
+      error: (err) => {
         this.uploading.set(false);
-        this.error.set('Import failed. Check that the backend is running and the file is a valid PDF.');
+        const detail = String(err?.message ?? err ?? '').replace(/^Error invoking remote method '[^']*':\s*/, '');
+        this.error.set(detail ? `Import failed: ${detail}` : 'Import failed — is this a valid Chime statement PDF?');
       },
     });
   }

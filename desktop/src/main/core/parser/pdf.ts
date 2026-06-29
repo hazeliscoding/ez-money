@@ -9,6 +9,14 @@
  */
 import * as fs from 'fs';
 
+// pdfjs-dist v4 is ESM-only. A plain `import()` gets rewritten to `require()`
+// by tsc's CommonJS output (which throws ERR_REQUIRE_ESM at runtime), so we use
+// a Function-wrapped import that survives down-leveling and stays a real dynamic
+// import in the compiled JS.
+const importEsm = new Function('specifier', 'return import(specifier)') as (
+  specifier: string,
+) => Promise<any>;
+
 interface Item {
   x: number;
   y: number;
@@ -21,7 +29,7 @@ const GAP = 1.5; // points — horizontal gap above which we insert a space
 
 export async function extractLines(src: string | Uint8Array): Promise<string[]> {
   // pdfjs-dist v4 ships as ESM; import the legacy build for Node.
-  const pdfjs: any = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs: any = await importEsm('pdfjs-dist/legacy/build/pdf.mjs');
   const data = typeof src === 'string' ? new Uint8Array(fs.readFileSync(src)) : src;
   const doc = await pdfjs.getDocument({
     data,
