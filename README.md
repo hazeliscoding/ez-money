@@ -60,9 +60,49 @@ Re-importing rebuilds the workbook from the PDFs (your edited **budgets** are
 preserved; direct edits to category/description cells in the sheet are not — put
 those in `category_rules.json` instead).
 
+## Web app
+
+A local web app (Angular + NestJS + PostgreSQL) wraps the same Python parser.
+Upload statement PDFs in the browser, edit categories that **persist** (unlike
+the spreadsheet), and browse dashboards across periods. UI is intentionally
+dense and fast (McMaster-Carr styling, vanilla CSS — no component framework).
+
+```
+browser (Angular SPA)  →  NestJS API  →  spawns `python -m ezmoney parse`  →  PostgreSQL
+```
+
+### Prerequisites
+- Node 20+, Docker (for Postgres), and the Python package set up (`pip install -r requirements.txt`).
+
+### Run it (three terminals)
+
+```bash
+# 1. database
+docker compose up -d db                      # Postgres on host port 5433
+
+# 2. API  (http://localhost:3000/api)
+cd backend && cp .env.example .env && npm install && npm run start:dev
+
+# 3. UI   (http://localhost:4200)
+cd frontend && npm install && npm start      # proxies /api -> :3000
+```
+
+Then open http://localhost:4200, go to **Import**, and drop in a statement PDF.
+
+Notes:
+- Postgres is published on **5433** (not 5432) to avoid clashing with a local
+  Postgres install; `backend/.env` is preconfigured to match.
+- The API shells out to `python -m ezmoney parse` from the repo root, so the
+  Python package and its deps must be importable (`PYTHON_BIN` in `.env`).
+- Importing a statement **replaces** that period's transactions; category/notes
+  edits persist in the DB. Budgets are editable on the Budgets page.
+
+### Layout
+- `backend/` — NestJS API (`transactions`, `budgets`, `import`, `summary` modules; TypeORM + Postgres).
+- `frontend/` — Angular standalone SPA (Dashboard, Transactions, Budgets, Import).
+- `docker-compose.yml` — Postgres 16.
+
 ## Roadmap
 
-- **Step 1 (done):** PDF → cleaned, categorized tracker.
-- **Step 2 (next):** local web app — upload PDFs, auto-categorize, browse
-  dashboards across months. The `parser`/`rules` core is UI-agnostic and ready
-  to sit behind it.
+- **Step 1 (done):** PDF → cleaned, categorized Excel tracker.
+- **Step 2 (done):** local web app with persistent edits + multi-period dashboards.

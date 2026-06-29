@@ -47,3 +47,19 @@ Thumbs.db
 desktop.ini
 .idea/
 .vscode/
+
+# ──────────────────────────────────────────────────────────────
+# Local env files (keep the .env.example templates tracked)
+# ──────────────────────────────────────────────────────────────
+.env
+**/.env
+
+# ──────────────────────────────────────────────────────────────
+# Node / Angular / Nest (backend/ and frontend/)
+# ──────────────────────────────────────────────────────────────
+node_modules/
+dist/
+*.tsbuildinfo
+.angular/
+npm-debug.log*
+yarn-error.log*
