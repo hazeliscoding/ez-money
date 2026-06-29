@@ -1,6 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { Observable, from } from 'rxjs';
 import {
   Budget,
   HealthResult,
@@ -11,58 +10,55 @@ import {
   TransactionQuery,
 } from './models';
 
+/**
+ * Talks to the Electron main process over IPC (window.api, exposed by the
+ * preload bridge). Public method shapes are unchanged from the old HTTP version
+ * (Observables), so components and PeriodService didn't need to change — only
+ * the transport (HttpClient -> IPC).
+ */
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private readonly http = inject(HttpClient);
-  private readonly base = '/api';
+  private get api() {
+    return window.api;
+  }
 
   health(): Observable<HealthResult> {
-    return this.http.get<HealthResult>(`${this.base}/health`);
+    return from(this.api.health());
   }
 
   import(file: File): Observable<ImportResult> {
-    const form = new FormData();
-    form.append('file', file, file.name);
-    return this.http.post<ImportResult>(`${this.base}/import`, form);
+    return from(file.arrayBuffer().then((buf) => this.api.importBytes(buf)));
   }
 
   getPeriods(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.base}/periods`);
+    return from(this.api.periods());
   }
 
   getCategories(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.base}/categories`);
+    return from(this.api.categories());
   }
 
   getTransactions(query: TransactionQuery): Observable<Transaction[]> {
-    let params = new HttpParams();
-    if (query.period) params = params.set('period', query.period);
-    if (query.category) params = params.set('category', query.category);
-    if (query.kind) params = params.set('kind', query.kind);
-    if (query.q) params = params.set('q', query.q);
-    if (query.sort) params = params.set('sort', query.sort);
-    if (query.dir) params = params.set('dir', query.dir);
-    return this.http.get<Transaction[]>(`${this.base}/transactions`, { params });
+    return from(this.api.listTransactions(query));
   }
 
   patchTransaction(id: number, patch: TransactionPatch): Observable<Transaction> {
-    return this.http.patch<Transaction>(`${this.base}/transactions/${id}`, patch);
+    return from(this.api.updateTransaction(id, patch));
   }
 
   deleteTransaction(id: number): Observable<{ deleted: boolean }> {
-    return this.http.delete<{ deleted: boolean }>(`${this.base}/transactions/${id}`);
+    return from(this.api.removeTransaction(id));
   }
 
   getSummary(period: string): Observable<Summary> {
-    const params = new HttpParams().set('period', period);
-    return this.http.get<Summary>(`${this.base}/summary`, { params });
+    return from(this.api.summary(period));
   }
 
   getBudgets(): Observable<Budget[]> {
-    return this.http.get<Budget[]>(`${this.base}/budgets`);
+    return from(this.api.budgets());
   }
 
   putBudgets(budgets: Budget[]): Observable<Budget[]> {
-    return this.http.put<Budget[]>(`${this.base}/budgets`, budgets);
+    return from(this.api.updateBudgets(budgets));
   }
 }
