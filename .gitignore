@@ -59,7 +59,12 @@ desktop.ini
 # ──────────────────────────────────────────────────────────────
 node_modules/
 dist/
+release/
 *.tsbuildinfo
 .angular/
 npm-debug.log*
 yarn-error.log*
+
+# Local SQLite databases
+*.sqlite
+*.sqlite-journal
