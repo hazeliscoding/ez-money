@@ -74,20 +74,32 @@ browser (Angular SPA)  →  NestJS API  →  spawns `python -m ezmoney parse`  �
 ### Prerequisites
 - Node 20+, Docker (for Postgres), and the Python package set up (`pip install -r requirements.txt`).
 
-### Run it (three terminals)
+### Run it (one command)
+
+First time only — install deps and create `backend/.env`:
 
 ```bash
-# 1. database
-docker compose up -d db                      # Postgres on host port 5433
-
-# 2. API  (http://localhost:3000/api)
-cd backend && cp .env.example .env && npm install && npm run start:dev
-
-# 3. UI   (http://localhost:4200)
-cd frontend && npm install && npm start      # proxies /api -> :3000
+npm install        # root tooling (concurrently)
+npm run setup      # installs backend + frontend deps, creates backend/.env
 ```
 
-Then open http://localhost:4200, go to **Import**, and drop in a statement PDF.
+Then, any time:
+
+```bash
+npm run dev        # starts Postgres + API (:3000) + UI (:4200) together
+```
+
+Open http://localhost:4200, go to **Import**, and drop in a statement PDF.
+`Ctrl+C` stops the API and UI; `npm run db:stop` stops Postgres.
+
+<details><summary>Prefer separate terminals? Run the tiers manually</summary>
+
+```bash
+docker compose up -d db                              # Postgres on host port 5433
+cd backend  && cp .env.example .env && npm install && npm run start:dev
+cd frontend && npm install && npm start              # proxies /api -> :3000
+```
+</details>
 
 Notes:
 - Postgres is published on **5433** (not 5432) to avoid clashing with a local
