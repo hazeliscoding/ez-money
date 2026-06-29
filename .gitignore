@@ -1,0 +1,49 @@
+# ──────────────────────────────────────────────────────────────
+# AI assistant tooling — kept local, never tracked
+# ──────────────────────────────────────────────────────────────
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.cursor/
+.cursorrules
+.cursorignore
+.aider*
+.continue/
+.windsurfrules
+.github/copilot-instructions.md
+
+# ──────────────────────────────────────────────────────────────
+# Personal financial data — contains account numbers / PII.
+# The importer reads these locally; they must not enter git history.
+# ──────────────────────────────────────────────────────────────
+docs/statements/**/*.pdf
+*.xlsx
+*.xls
+~$*.xlsx
+
+# ──────────────────────────────────────────────────────────────
+# Python
+# ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ──────────────────────────────────────────────────────────────
+# OS / editor cruft
+# ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
