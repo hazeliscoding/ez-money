@@ -60,61 +60,57 @@ Re-importing rebuilds the workbook from the PDFs (your edited **budgets** are
 preserved; direct edits to category/description cells in the sheet are not — put
 those in `category_rules.json` instead).
 
-## Web app
+## Desktop app
 
-A local web app (Angular + NestJS + PostgreSQL) wraps the same Python parser.
-Upload statement PDFs in the browser, edit categories that **persist** (unlike
-the spreadsheet), and browse dashboards across periods. UI is intentionally
-dense and fast (McMaster-Carr styling, vanilla CSS — no component framework).
+A distributable desktop app (Electron) — import statement PDFs, edit categories
+that **persist**, and browse dashboards across periods, all stored locally in
+SQLite. No server, no Docker, and **no Python at runtime**. The UI is the same
+dense, fast Angular renderer (McMaster-Carr styling, vanilla CSS).
 
 ```
-browser (Angular SPA)  →  NestJS API  →  spawns `python -m ezmoney parse`  →  PostgreSQL
+Angular renderer  --IPC-->  Electron main  -->  SQLite (sql.js, in userData)
+                                          \-->  TypeScript PDF parser (no Python)
 ```
 
 ### Prerequisites
-- Node 20+, Docker (for Postgres), and the Python package set up (`pip install -r requirements.txt`).
+- Node 20+. (No Python, Docker, or database needed.)
 
 ### Run it (one command)
 
-First time only — install deps and create `backend/.env`:
-
 ```bash
-npm install        # root tooling (concurrently)
-npm run setup      # installs backend + frontend deps, creates backend/.env
+npm install        # root tooling
+npm run setup      # installs frontend + desktop deps
+npm run dev        # Angular dev server + Electron, together
 ```
 
-Then, any time:
+The window opens; go to **Import** and choose a statement PDF. Category and note
+edits persist in SQLite (`ezmoney.sqlite` in your OS user-data folder). Importing
+a statement replaces that period's transactions.
 
+### Build installers
 ```bash
-npm run dev        # starts Postgres + API (:3000) + UI (:4200) together
+npm run package:win      # Windows NSIS installer -> desktop/release/
+npm run package:linux    # Linux AppImage (build on Linux or WSL)
 ```
-
-Open http://localhost:4200, go to **Import**, and drop in a statement PDF.
-`Ctrl+C` stops the API and UI; `npm run db:stop` stops Postgres.
-
-<details><summary>Prefer separate terminals? Run the tiers manually</summary>
-
-```bash
-docker compose up -d db                              # Postgres on host port 5433
-cd backend  && cp .env.example .env && npm install && npm run start:dev
-cd frontend && npm install && npm start              # proxies /api -> :3000
-```
-</details>
-
-Notes:
-- Postgres is published on **5433** (not 5432) to avoid clashing with a local
-  Postgres install; `backend/.env` is preconfigured to match.
-- The API shells out to `python -m ezmoney parse` from the repo root, so the
-  Python package and its deps must be importable (`PYTHON_BIN` in `.env`).
-- Importing a statement **replaces** that period's transactions; category/notes
-  edits persist in the DB. Budgets are editable on the Budgets page.
+Installers are **unsigned**, so Windows SmartScreen / "unknown publisher" will
+warn on first run (code signing is a separate, paid step). macOS is not targeted.
 
 ### Layout
-- `backend/` — NestJS API (`transactions`, `budgets`, `import`, `summary` modules; TypeORM + Postgres).
-- `frontend/` — Angular standalone SPA (Dashboard, Transactions, Budgets, Import).
-- `docker-compose.yml` — Postgres 16.
+- `desktop/` — Electron app: `src/main` (window, IPC, SQLite via TypeORM, and the
+  TS PDF parser in `core/parser`), `src/preload` (the `window.api` bridge).
+- `frontend/` — Angular renderer (Dashboard, Transactions, Budgets, Import),
+  built into `desktop/dist/renderer`.
+- `ezmoney/` — the original Python CLI + Excel exporter (unchanged).
+
+### Tests (headless)
+```bash
+cd desktop && npm run test:parser   # TS parser matches the Python output exactly
+cd desktop && npm run test:db       # SQLite data layer: import, summary, persistence
+cd desktop && npm run build:main && npm run smoke   # live IPC round-trip via Electron
+```
 
 ## Roadmap
 
-- **Step 1 (done):** PDF → cleaned, categorized Excel tracker.
-- **Step 2 (done):** local web app with persistent edits + multi-period dashboards.
+- **Step 1 (done):** PDF → cleaned, categorized Excel tracker (`ezmoney/`).
+- **Step 2 (done):** desktop app — local SQLite, persistent edits, multi-period
+  dashboards, distributable installers. (Superseded the earlier web-app prototype.)
