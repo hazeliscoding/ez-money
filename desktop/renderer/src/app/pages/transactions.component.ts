@@ -318,17 +318,26 @@ export class TransactionsComponent {
   }
 
   /**
-   * Inline category change from the per-row dropdown. No-ops if unchanged, then
-   * patches just that field and swaps the returned row into the list in place
-   * (no full reload).
+   * Inline category change from the per-row dropdown. No-ops if unchanged.
+   *
+   * We update the row in the list OPTIMISTICALLY (synchronously) before the async
+   * save: the dropdown is a one-way `[value]="t.category"` binding, so if we waited
+   * for the round-trip, change detection would re-apply the old value and snap the
+   * select back — looking like the edit did nothing. On success we reconcile with
+   * the persisted row; on failure we roll back to the previous category.
    */
   onCategoryChange(t: Transaction, category: string): void {
     if (category === t.category) return;
+    const previous = t.category;
+    this.txns.update((list) => list.map((x) => (x.id === t.id ? { ...x, category } : x)));
     this.api.patchTransaction(t.id, { category }).subscribe({
       next: (updated) => {
         this.txns.update((list) => list.map((x) => (x.id === updated.id ? updated : x)));
       },
-      error: () => this.error.set(`Failed to update category for transaction ${t.id}.`),
+      error: () => {
+        this.error.set(`Failed to update category for transaction ${t.id}.`);
+        this.txns.update((list) => list.map((x) => (x.id === t.id ? { ...x, category: previous } : x)));
+      },
     });
   }
 
