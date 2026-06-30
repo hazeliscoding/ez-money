@@ -27,6 +27,15 @@ interface Item {
 const Y_TOLERANCE = 2; // points — items within this Y delta are the same line
 const GAP = 1.5; // points — horizontal gap above which we insert a space
 
+/**
+ * Render a PDF to an array of reconstructed text lines, top-to-bottom across all
+ * pages. Items are grouped into a line when their Y baselines are within
+ * {@link Y_TOLERANCE}, ordered left-to-right, and joined with a space only where
+ * the X gap exceeds {@link GAP} — preserving multi-token cells (dates, amounts)
+ * as single words so the row regex in parse.ts can match them.
+ *
+ * @param src A PDF file path (read from disk) or raw PDF bytes.
+ */
 export async function extractLines(src: string | Uint8Array): Promise<string[]> {
   // pdfjs-dist v4 ships as ESM; import the legacy build for Node.
   const pdfjs: any = await importEsm('pdfjs-dist/legacy/build/pdf.mjs');

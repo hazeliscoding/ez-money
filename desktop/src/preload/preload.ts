@@ -1,3 +1,9 @@
+/**
+ * Preload bridge: the only surface the (context-isolated) renderer can touch in
+ * the main process. Each method is a typed wrapper over ipcRenderer.invoke whose
+ * channel name matches a handler in ipc.ts 1:1 — keep the three in sync (this
+ * object, {@link EzApi}, and registerIpc). Exposed on `window.api`.
+ */
 import { contextBridge, ipcRenderer } from 'electron';
 import type { EzApi } from '../shared/types';
 

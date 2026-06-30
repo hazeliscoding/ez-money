@@ -4,6 +4,12 @@ import { ApiService } from '../api.service';
 import { Budget } from '../models';
 import { MoneyPipe } from '../money.pipe';
 
+/**
+ * Budgets page: edit the monthly budget per category in a single table, then
+ * save. Budgets are global (not per-period). On load it merges saved budgets
+ * with the canonical category list so every known category gets an editable row
+ * even if it has no budget yet.
+ */
 @Component({
   selector: 'app-budgets',
   standalone: true,
@@ -61,14 +67,21 @@ import { MoneyPipe } from '../money.pipe';
 export class BudgetsComponent {
   private readonly api = inject(ApiService);
 
+  /** The editable rows; mutated in place as the user types. */
   readonly budgets = signal<Budget[]>([]);
   readonly saving = signal<boolean>(false);
+  /** True briefly after a successful save to show the confirmation banner; cleared on any edit. */
   readonly saved = signal<boolean>(false);
   readonly error = signal<string | null>(null);
 
+  /** Sum of all monthly budgets, shown in the table footer. */
   readonly total = computed(() => this.budgets().reduce((s, b) => s + (b.monthlyAmount || 0), 0));
 
   constructor() {
+    // Load budgets and categories in parallel, then merge: start from saved
+    // amounts and backfill any category that has no budget with 0, so the table
+    // always offers a row for every category. Both calls fall back to empty on
+    // error so the page still renders. Rows are sorted alphabetically.
     forkJoin({
       budgets: this.api.getBudgets().pipe(catchError(() => of([] as Budget[]))),
       categories: this.api.getCategories().pipe(catchError(() => of([] as string[]))),
@@ -84,6 +97,7 @@ export class BudgetsComponent {
     });
   }
 
+  /** Updates one row's amount from its input; non-numeric input is coerced to 0. */
   setAmount(index: number, value: string): void {
     const amount = parseFloat(value);
     this.budgets.update((list) =>
@@ -92,6 +106,7 @@ export class BudgetsComponent {
     this.saved.set(false);
   }
 
+  /** Persists all budgets, then re-sorts and shows them from the server's response. */
   save(): void {
     this.saving.set(true);
     this.saved.set(false);

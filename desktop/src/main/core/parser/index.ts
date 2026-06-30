@@ -1,9 +1,22 @@
-/** Parse a Chime statement PDF into cleaned, categorized transactions. */
+/**
+ * Public entry point of the parser package: ties together text extraction
+ * (pdf.ts), row parsing + period detection (parse.ts), and cleaning/
+ * categorization (rules.ts).
+ */
 import { extractLines } from './pdf';
 import { detectPeriod, parseRawTransactions } from './parse';
 import { clean, loadRules, RuleSet } from './rules';
 import type { ParseResult } from '../../../shared/types';
 
+/**
+ * Parse a Chime statement (path or bytes) into cleaned, categorized
+ * transactions. If no statement period is detected the PDF is treated as
+ * unrecognized and an empty result is returned (rather than throwing).
+ *
+ * @param src PDF file path or raw bytes.
+ * @param ruleset Categorization rules; defaults to the bundled set so the parser
+ *   is usable standalone (e.g. the golden test). The app passes the user's rules.
+ */
 export async function parsePdf(
   src: string | Uint8Array,
   ruleset: RuleSet = loadRules(),

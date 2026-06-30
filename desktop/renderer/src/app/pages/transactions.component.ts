@@ -21,8 +21,13 @@ import {
 } from '../models';
 import { MoneyPipe } from '../money.pipe';
 
+/** Which operation the shared modal is performing; `null` (elsewhere) means the modal is closed. */
 type FormMode = 'add' | 'edit';
 
+/**
+ * View-model for the add/edit modal. `amount` is a string (not number) because
+ * it's bound to a text/number input; it's parsed and validated on submit.
+ */
 interface TxnForm {
   date: string;
   period: string;
@@ -34,6 +39,12 @@ interface TxnForm {
   notes: string;
 }
 
+/**
+ * Transactions page: filterable, sortable table of transactions for the selected
+ * period, with inline category editing and a single modal reused for both adding
+ * and editing rows. Filters (period/category/kind/search) drive a debounced
+ * reactive query; the period filter is the app-wide selection from PeriodService.
+ */
 @Component({
   selector: 'app-transactions',
   standalone: true,
@@ -208,29 +219,35 @@ export class TransactionsComponent {
   private readonly api = inject(ApiService);
   readonly periodSvc = inject(PeriodService);
 
+  // ----- filter / sort state (each is bound to a toolbar control) -----
   readonly category = signal<string>('');
   readonly kind = signal<'' | TransactionKind>('');
   readonly q = signal<string>('');
   readonly sort = signal<SortField>('date');
   readonly dir = signal<SortDir>('desc');
 
+  // ----- list state -----
   readonly txns = signal<Transaction[]>([]);
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
-  /** Bumped to force a reload without changing the filter query. */
+  /** Bumped to force a reload without changing the filter query (e.g. after an add). */
   readonly reloadTick = signal<number>(0);
 
-  // Add/edit form state.
+  // ----- add/edit modal state -----
+  /** Non-null while the modal is open; its value selects add vs edit behavior. */
   readonly formMode = signal<FormMode | null>(null);
   readonly form = signal<TxnForm>(this.emptyForm());
+  /** The row being edited (null in add mode); kept to diff against on save. */
   readonly editing = signal<Transaction | null>(null);
   readonly formError = signal<string | null>(null);
   readonly saving = signal<boolean>(false);
 
+  /** Category options for the filter and form selects; empty on failure rather than erroring. */
   readonly categories = toSignal(this.api.getCategories().pipe(catchError(() => of([] as string[]))), {
     initialValue: [] as string[],
   });
 
+  /** The current query, recomputed whenever any filter/sort signal (or the shared period) changes. */
   readonly query = computed<TransactionQuery>(() => ({
     period: this.periodSvc.selected(),
     category: this.category(),
@@ -240,9 +257,17 @@ export class TransactionsComponent {
     dir: this.dir(),
   }));
 
+  /** Running total of the listed amounts, shown in the meta line. */
   readonly sum = computed(() => this.txns().reduce((s, t) => s + t.amount, 0));
 
   constructor() {
+    // Reactive load pipeline: re-fetch whenever the query changes OR reloadTick
+    // is bumped. The leading `tap` shows the spinner immediately (before the
+    // debounce) so typing feels responsive; debounce then collapses rapid
+    // keystrokes/filter changes into one request. distinctUntilChanged (deep,
+    // via JSON) skips redundant fetches when the effective query is unchanged.
+    // switchMap cancels any in-flight request so only the latest result lands,
+    // and takeUntilDestroyed tears the subscription down with the component.
     toObservable(computed(() => ({ query: this.query(), tick: this.reloadTick() })))
       .pipe(
         tap(() => {
@@ -267,10 +292,16 @@ export class TransactionsComponent {
       });
   }
 
+  /** Period filter handler — writes to the shared selection (affects the whole app). */
   onPeriod(value: string): void {
     this.periodSvc.select(value);
   }
 
+  /**
+   * Header-click sort handler. Clicking the active column flips direction;
+   * clicking a new column switches to it with a sensible default direction —
+   * descending for date/amount (newest/largest first), ascending for text.
+   */
   toggleSort(field: SortField): void {
     if (this.sort() === field) {
       this.dir.set(this.dir() === 'asc' ? 'desc' : 'asc');
@@ -280,11 +311,17 @@ export class TransactionsComponent {
     }
   }
 
+  /** Sort-direction arrow for a column header (empty unless it's the active sort). */
   ind(field: SortField): string {
     if (this.sort() !== field) return '';
     return this.dir() === 'asc' ? '▲' : '▼';
   }
 
+  /**
+   * Inline category change from the per-row dropdown. No-ops if unchanged, then
+   * patches just that field and swaps the returned row into the list in place
+   * (no full reload).
+   */
   onCategoryChange(t: Transaction, category: string): void {
     if (category === t.category) return;
     this.api.patchTransaction(t.id, { category }).subscribe({
@@ -297,11 +334,13 @@ export class TransactionsComponent {
 
   // ----- add / edit form -----
 
+  /** Immutably updates one form field and clears any pending validation error. */
   patch<K extends keyof TxnForm>(key: K, value: TxnForm[K]): void {
     this.form.update((f) => ({ ...f, [key]: value }));
     this.formError.set(null);
   }
 
+  /** Opens the modal in add mode, pre-filling today's date and the current period. */
   openAdd(): void {
     this.editing.set(null);
     this.formError.set(null);
@@ -313,6 +352,7 @@ export class TransactionsComponent {
     this.formMode.set('add');
   }
 
+  /** Opens the modal in edit mode, snapshotting the row into the form (amount stringified for the input). */
   openEdit(t: Transaction): void {
     this.editing.set(t);
     this.formError.set(null);
@@ -329,11 +369,20 @@ export class TransactionsComponent {
     this.formMode.set('edit');
   }
 
+  /** Closes the modal, unless a save is mid-flight (avoid losing in-flight state). */
   closeForm(): void {
     if (this.saving()) return;
     this.formMode.set(null);
   }
 
+  /**
+   * Validates and submits the modal. In add mode it creates the transaction,
+   * refreshes the shared period list (a new period may have appeared) and bumps
+   * reloadTick to reload the table. In edit mode it diffs the form against the
+   * original and sends only the changed fields — sending nothing if unchanged —
+   * and patches the row in place, refreshing periods only if the period changed.
+   * Amounts stay positive; `kind` carries the sign meaning.
+   */
   submitForm(): void {
     const f = this.form();
     const amount = parseFloat(f.amount);
@@ -408,6 +457,7 @@ export class TransactionsComponent {
     });
   }
 
+  /** Deletes a row after a confirm prompt, removing it from the list in place on success. */
   remove(t: Transaction): void {
     if (!window.confirm(`Delete "${t.description}" (${t.date})? This cannot be undone.`)) return;
     this.api.deleteTransaction(t.id).subscribe({
@@ -416,6 +466,7 @@ export class TransactionsComponent {
     });
   }
 
+  /** Blank form defaults (Expense, "Manual" account) for a fresh add. */
   private emptyForm(): TxnForm {
     return {
       date: '',
@@ -429,6 +480,7 @@ export class TransactionsComponent {
     };
   }
 
+  /** Today's date as a YYYY-MM-DD string for the date input default. */
   private today(): string {
     return new Date().toISOString().slice(0, 10);
   }

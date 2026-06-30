@@ -6,6 +6,12 @@ import { PeriodService } from '../period.service';
 import { ImportResult } from '../models';
 import { MoneyPipe } from '../money.pipe';
 
+/**
+ * Import page: drag-and-drop (or click-to-pick) a statement PDF, then send its
+ * bytes to the main process to parse and import. Shows the import summary
+ * afterward, including any merchants that matched no rule. On success it
+ * refreshes the shared period list so newly imported periods become selectable.
+ */
 @Component({
   selector: 'app-import',
   standalone: true,
@@ -85,12 +91,16 @@ export class ImportComponent {
   private readonly api = inject(ApiService);
   private readonly periodSvc = inject(PeriodService);
 
+  /** The chosen file awaiting upload (null until one is picked/dropped). */
   readonly file = signal<File | null>(null);
   readonly uploading = signal<boolean>(false);
+  /** Drives the drop-zone highlight while a drag is over it. */
   readonly dragover = signal<boolean>(false);
   readonly error = signal<string | null>(null);
+  /** The import summary, shown after a successful upload. */
   readonly result = signal<ImportResult | null>(null);
 
+  /** Handles the hidden file input's selection. */
   onFileSelected(files: FileList | null): void {
     if (files && files.length) this.setFile(files[0]);
   }
@@ -112,6 +122,11 @@ export class ImportComponent {
     if (files && files.length) this.setFile(files[0]);
   }
 
+  /**
+   * Accepts a candidate file, clearing any prior error/result. Rejects non-PDFs
+   * (by MIME type when present, falling back to a .pdf extension check, since
+   * dragged files don't always carry a type).
+   */
   private setFile(f: File): void {
     this.error.set(null);
     this.result.set(null);
@@ -123,12 +138,19 @@ export class ImportComponent {
     this.file.set(f);
   }
 
+  /** Resets the page back to the empty drop-zone state. */
   clear(): void {
     this.file.set(null);
     this.result.set(null);
     this.error.set(null);
   }
 
+  /**
+   * Uploads the selected PDF and shows the result. On success it clears the file
+   * and refreshes the shared period list so new periods become selectable. On
+   * failure it strips Electron's "Error invoking remote method '…':" prefix to
+   * surface just the underlying message (falling back to a generic hint).
+   */
   upload(): void {
     const f = this.file();
     if (!f) return;

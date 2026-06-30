@@ -2,7 +2,19 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { Services } from './db';
 import { CATEGORY_PICKLIST } from './core/categories';
 
-/** Register all IPC handlers. Channels mirror the old REST endpoints. */
+/**
+ * Register every `ipcMain.handle` channel the renderer invokes. The channel
+ * names here map 1:1 to the methods on window.api (see preload.ts) — adding a
+ * feature means touching both sides plus the {@link EzApi} type.
+ *
+ * Handlers are thin: they unwrap args and delegate to a service, so business
+ * logic stays testable without Electron (see core/db-test.ts).
+ *
+ * @param services The wired service layer from {@link initServices}.
+ * @param getWindow Lazily resolves the current BrowserWindow — needed so the
+ *   import dialog can be shown modally; it may be null (e.g. all windows closed)
+ *   in which case the dialog is shown windowless.
+ */
 export function registerIpc(services: Services, getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('health', () => ({ status: 'ok' }));
   ipcMain.handle('categories', () => CATEGORY_PICKLIST);
@@ -32,6 +44,8 @@ export function registerIpc(services: Services, getWindow: () => BrowserWindow |
   ipcMain.handle('import:bytes', (_e, bytes: ArrayBuffer) =>
     services.import.importBytes(new Uint8Array(bytes)),
   );
+  // Opens the native file picker, then imports the chosen PDF. Returns
+  // { canceled: true } (not an ImportResult) when the user dismisses the dialog.
   ipcMain.handle('import:dialog', async () => {
     const win = getWindow();
     const opts = {

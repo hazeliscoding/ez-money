@@ -5,6 +5,15 @@ import { ApiService } from '../api.service';
 import { PeriodService } from '../period.service';
 import { RuleSet } from '../models';
 
+/**
+ * Settings page with two sections:
+ *  - Periods: rename or delete statement periods (deleting drops all of that
+ *    period's transactions). Both push changes through PeriodService.refresh()
+ *    so the rest of the app sees them.
+ *  - Category rules: edit the ordered match rules (first match wins), the
+ *    default category, and excluded descriptions, then save. A separate
+ *    "re-apply" action re-runs the saved rules over existing transactions.
+ */
 @Component({
   selector: 'app-settings',
   standalone: true,
@@ -143,27 +152,36 @@ export class SettingsComponent {
   private readonly api = inject(ApiService);
   readonly periodSvc = inject(PeriodService);
 
+  /** Category options for the rule/default selects; empty on failure rather than erroring. */
   readonly categories = toSignal(
     this.api.getCategories().pipe(catchError(() => of([] as string[]))),
     { initialValue: [] as string[] },
   );
 
-  // Periods.
+  // Periods. (The period list itself is read from the shared PeriodService.)
+  /** The period currently being renamed inline, or null when none. */
   readonly editingPeriod = signal<string | null>(null);
+  /** The in-progress new name while renaming. */
   readonly periodDraft = signal<string>('');
   readonly periodsError = signal<string | null>(null);
 
   // Rules.
+  /** Ordered [pattern, category] rules; order is significant (first match wins). */
   readonly rules = signal<[string, string][]>([]);
+  /** Excluded descriptions edited as one textarea, newline-separated. */
   readonly exclude = signal<string>('');
   readonly ruleDefault = signal<string>('Other');
   readonly rulesSaving = signal<boolean>(false);
+  /** True briefly after a successful save; cleared on any edit. */
   readonly rulesSaved = signal<boolean>(false);
   readonly rulesError = signal<string | null>(null);
   readonly recatRunning = signal<boolean>(false);
+  /** Number of transactions changed by the last re-apply, or null if not run yet. */
   readonly recatResult = signal<number | null>(null);
 
   constructor() {
+    // Load the existing ruleset once. `exclude` is flattened to newline-joined
+    // text for the textarea; default falls back to "Other".
     this.api.getRules().subscribe({
       next: (r) => {
         this.rules.set(r.rules ?? []);
@@ -176,6 +194,7 @@ export class SettingsComponent {
 
   // ----- periods -----
 
+  /** Enters inline-rename mode for a period, seeding the draft with its current name. */
   startRename(period: string): void {
     this.periodsError.set(null);
     this.editingPeriod.set(period);
@@ -186,6 +205,7 @@ export class SettingsComponent {
     this.editingPeriod.set(null);
   }
 
+  /** Commits an inline rename; no-ops if the name is blank or unchanged, then refreshes shared periods. */
   saveRename(oldPeriod: string): void {
     const next = this.periodDraft().trim();
     if (!next || next === oldPeriod) {
@@ -201,6 +221,7 @@ export class SettingsComponent {
     });
   }
 
+  /** Deletes a period (and its transactions) after a confirm prompt, then refreshes shared periods. */
   deletePeriod(period: string): void {
     if (!window.confirm(`Delete period "${period}" and all of its transactions? This cannot be undone.`)) {
       return;
@@ -212,7 +233,10 @@ export class SettingsComponent {
   }
 
   // ----- rules -----
+  // Edits below are purely local; nothing persists until saveRules(). Each
+  // mutation clears the "saved" banner so it reflects unsaved changes.
 
+  /** Appends a blank rule, defaulting its category to the first known one. */
   addRule(): void {
     this.rules.update((list) => [...list, ['', this.categories()[0] ?? 'Other'] as [string, string]]);
     this.rulesSaved.set(false);
@@ -237,6 +261,7 @@ export class SettingsComponent {
     this.rulesSaved.set(false);
   }
 
+  /** Reorders a rule by swapping with its neighbor (delta -1 up / +1 down); order affects matching priority. */
   moveRule(index: number, delta: number): void {
     const target = index + delta;
     this.rules.update((list) => {
@@ -248,6 +273,11 @@ export class SettingsComponent {
     this.rulesSaved.set(false);
   }
 
+  /**
+   * Persists the ruleset. Before sending it normalizes: excluded lines are
+   * trimmed and blanks dropped, and rules with an empty pattern are discarded.
+   * Re-seeds local state from the server's normalized response.
+   */
   saveRules(): void {
     this.rulesSaving.set(true);
     this.rulesSaved.set(false);
@@ -275,6 +305,11 @@ export class SettingsComponent {
     });
   }
 
+  /**
+   * Re-runs the saved rules over existing transactions. Destructive — it
+   * overwrites manually assigned categories — so it confirms first, then reports
+   * how many rows changed.
+   */
   reapply(): void {
     if (
       !window.confirm(

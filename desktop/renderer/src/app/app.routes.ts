@@ -1,5 +1,12 @@
 import { Routes } from '@angular/router';
 
+/**
+ * Route table for the app. Each page is a standalone component lazy-loaded via
+ * `loadComponent`, so it ships in its own chunk and is only fetched on first
+ * visit. `title` sets the window/document title per page. The app defaults to
+ * the dashboard, and any unknown path falls back to it (see the `**` route).
+ * Note: hash-based routing is configured in app.config.ts (see withHashLocation).
+ */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {

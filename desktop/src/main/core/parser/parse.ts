@@ -6,18 +6,24 @@
  * ignores them (no double-counting).
  */
 
+/** One Combined-Activity row, parsed but not yet cleaned/categorized. */
 export interface RawTxn {
   date: string; // 'YYYY-MM-DD'
   description: string;
-  statementType: string;
+  statementType: string; // Chime's transaction type, e.g. 'Purchase', 'Deposit'
   amount: number; // signed: negative = money out
   account: string;
-  settlement: string;
+  settlement: string; // posting/settlement date, 'YYYY-MM-DD'
 }
 
+// Closed sets of the literal type/account tokens Chime prints. Anchoring on
+// these is what makes the 6-field match strict (and lets the lazy `(.+?)`
+// description stop at the type column instead of swallowing it).
 const TYPES = 'Round Up Transfer|Direct Debit|Transfer|Purchase|Deposit|Adjustment|Payment';
 const ACCTS = 'Secured Deposit Account|Chime Card|Checking';
 
+// Full 6-field row: date, description, type, amount, account, settlement date.
+// Five-field billing rows lack the trailing account+date and therefore won't match.
 const LINE = new RegExp(
   `^(\\d{1,2}/\\d{2}/\\d{4})\\s+(.+?)\\s+(${TYPES})\\s+` +
     `(-?\\$[\\d,]+\\.\\d{2})\\s+(${ACCTS})\\s+(\\d{1,2}/\\d{2}/\\d{4})\\s*$`,
@@ -45,7 +51,11 @@ function parseAmount(s: string): number {
   return negative ? -value : value;
 }
 
-/** Statement period label, e.g. 'Jun 2026', or null if not found. */
+/**
+ * Find the statement period by scanning for a "<Month> <Year> (" heading and
+ * normalizing it to a short label, e.g. 'Jun 2026'. Returns null if no such
+ * heading is present (the caller treats that as "not a recognizable statement").
+ */
 export function detectPeriod(lines: string[]): string | null {
   for (const ln of lines) {
     const m = PERIOD_RE.exec(ln);
@@ -57,6 +67,12 @@ export function detectPeriod(lines: string[]): string | null {
   return null;
 }
 
+/**
+ * Extract every Combined-Activity transaction from the page lines. The strict
+ * 6-field {@link LINE} regex is the filter: only six-field rows match, so the
+ * later five-field per-account billing sections are skipped and amounts are not
+ * double-counted. Non-matching lines (headers, totals, page chrome) are ignored.
+ */
 export function parseRawTransactions(lines: string[]): RawTxn[] {
   const txns: RawTxn[] = [];
   for (const raw of lines) {

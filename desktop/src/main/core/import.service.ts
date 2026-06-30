@@ -3,22 +3,39 @@ import { TransactionsService } from './transactions.service';
 import { RulesService } from './rules.service';
 import type { ImportResult, ParseResult } from '../../shared/types';
 
+/** Round to 2 decimals (cents) for the reported import totals. */
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/**
+ * Orchestrates a statement import: parse the PDF with the current categorization
+ * rules, then persist the result. The two public entry points differ only in the
+ * source (a file path vs. raw bytes from the renderer); both funnel into ingest.
+ */
 export class ImportService {
   constructor(
     private readonly transactions: TransactionsService,
     private readonly rules: RulesService,
   ) {}
 
+  /** Import from a PDF on disk (used by the native file-open dialog). */
   importPath(filePath: string): Promise<ImportResult> {
     return parsePdf(filePath, this.rules.get()).then((p) => this.ingest(p));
   }
 
+  /** Import from in-memory PDF bytes (used when the renderer sends a file). */
   importBytes(bytes: Uint8Array): Promise<ImportResult> {
     return parsePdf(bytes, this.rules.get()).then((p) => this.ingest(p));
   }
 
+  /**
+   * Persist a parse result and compute the summary totals returned to the UI.
+   * Rows are grouped by period and each period is fully replaced (so re-importing
+   * the same statement is idempotent). Income/expense are summed from the parsed
+   * (positive-magnitude) amounts.
+   *
+   * @throws Error if the parse produced no transactions — typically a non-Chime
+   *   or wrong-format PDF.
+   */
   private async ingest(parsed: ParseResult): Promise<ImportResult> {
     const txns = parsed.transactions;
     if (txns.length === 0) {

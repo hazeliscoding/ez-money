@@ -8,12 +8,19 @@ import { PeriodService } from '../period.service';
 import { CategorySummary, Summary } from '../models';
 import { MoneyPipe } from '../money.pipe';
 
+/** Loading/error/data envelope for the async summary fetch, so the template can branch on one signal. */
 interface SummaryState {
   loading: boolean;
   error: string | null;
   data: Summary | null;
 }
 
+/**
+ * Dashboard page: the at-a-glance overview for the selected period — KPI tiles
+ * (income / spending / net / savings rate) plus a budget-vs-actual table with
+ * progress bars. Read-only; it reacts to the shared period selection and
+ * re-fetches its summary whenever that changes.
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -126,6 +133,14 @@ export class DashboardComponent {
   private readonly api = inject(ApiService);
   readonly periodSvc = inject(PeriodService);
 
+  /**
+   * Summary for the selected period as a signal. Bridges the shared `selected`
+   * signal to an Observable and `switchMap`s into a fresh fetch on every change
+   * — switchMap cancels any in-flight request so a fast period switch can't land
+   * a stale response. Each fetch emits a `loading` state first (startWith) and
+   * maps failures to an error state, so the template never has to handle raw
+   * errors. An empty period short-circuits to an empty (no-data) state.
+   */
   readonly state = toSignal(
     toObservable(this.periodSvc.selected).pipe(
       switchMap((period) => {
@@ -144,12 +159,14 @@ export class DashboardComponent {
     { initialValue: { loading: false, error: null, data: null } as SummaryState },
   );
 
+  /** Category rows for the table, sorted by actual spend descending (highest first). */
   readonly rows = computed<CategorySummary[]>(() => {
     const data = this.state().data;
     if (!data) return [];
     return [...data.byCategory].sort((a, b) => b.actual - a.actual);
   });
 
+  /** Footer totals across all category rows; pctBudget guards divide-by-zero. */
   readonly totals = computed(() => {
     const list = this.rows();
     const budget = list.reduce((s, r) => s + r.budget, 0);
@@ -159,6 +176,11 @@ export class DashboardComponent {
     return { budget, actual, remaining, pctBudget };
   });
 
+  /**
+   * Progress-bar fill width (%) for a row, clamped to 100 so over-budget rows
+   * don't overflow the track (the "over" styling signals the overage instead).
+   * With no budget set, any spend fills the bar fully.
+   */
   barWidth(row: CategorySummary): number {
     if (row.budget <= 0) return row.actual > 0 ? 100 : 0;
     return Math.min(100, (row.actual / row.budget) * 100);

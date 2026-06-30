@@ -9,6 +9,11 @@ import { SummaryService } from './core/summary.service';
 import { ImportService } from './core/import.service';
 import { RulesService } from './core/rules.service';
 
+/**
+ * The fully-wired service layer shared by the IPC handlers. `dataSource` is the
+ * live TypeORM connection (kept so callers like the tests can destroy it); the
+ * rest are the domain services backed by it.
+ */
 export interface Services {
   dataSource: DataSource;
   transactions: TransactionsService;
@@ -18,7 +23,17 @@ export interface Services {
   rules: RulesService;
 }
 
-/** Open the SQLite DB at dbPath, run migrations/seed, and wire up services. */
+/**
+ * Open the SQLite DB at `dbPath`, sync the schema, seed defaults, and construct
+ * every service. Call once at startup; the returned {@link Services} is handed
+ * to {@link registerIpc}.
+ *
+ * `synchronize: true` lets TypeORM create/alter tables from the entities — fine
+ * here because the schema is small and app-owned (no separate migrations).
+ *
+ * @param dbPath Absolute path to the SQLite file (its directory also holds the
+ *   user-editable category-rules.json — see {@link RulesService}).
+ */
 export async function initServices(dbPath: string): Promise<Services> {
   // sql.js = SQLite compiled to WebAssembly: no native build, no electron-rebuild.
   // `location` + `autoSave` load/persist the DB to a file (works in Node & Electron main).

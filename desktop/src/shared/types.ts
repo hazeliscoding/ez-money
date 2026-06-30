@@ -15,9 +15,11 @@ export interface ParsedTransaction {
   notes: string;
 }
 
+/** Raw output of parsing a statement, before anything is persisted. */
 export interface ParseResult {
   periods: string[];
   count: number;
+  /** Distinct expense descriptions that hit the fallback category (need a rule). */
   uncategorized: string[];
   transactions: ParsedTransaction[];
 }
@@ -27,29 +29,38 @@ export interface Transaction extends ParsedTransaction {
   id: number;
 }
 
+/** A category's monthly budget target. */
 export interface Budget {
   category: string;
   monthlyAmount: number;
 }
 
+/** Budget-vs-actual for one category within a period. */
 export interface CategorySummary {
   category: string;
   budget: number;
   actual: number;
+  /** budget − actual (negative = over budget). */
   remaining: number;
+  /** actual / budget (0 when budget is 0). */
   pctBudget: number;
+  /** actual / total expense for the period (0 when there's no spend). */
   pctSpend: number;
 }
 
+/** Dashboard totals for a period; `period` is null when there's no data. */
 export interface Summary {
   period: string | null;
   income: number;
   expense: number;
+  /** income − expense. */
   net: number;
+  /** net / income (0 when income is 0). */
   savingsRate: number;
   byCategory: CategorySummary[];
 }
 
+/** Filters/sort for listing transactions; all fields optional. `q` is free-text. */
 export interface TransactionQuery {
   period?: string;
   category?: string;
@@ -59,8 +70,10 @@ export interface TransactionQuery {
   dir?: string;
 }
 
+/** Summary of a completed import, returned to the UI. */
 export interface ImportResult {
   periods: string[];
+  /** Number of transactions persisted. */
   imported: number;
   income: number;
   expense: number;
