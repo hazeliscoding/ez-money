@@ -47,6 +47,17 @@ export interface Summary {
   byCategory: CategorySummary[];
 }
 
+/** One period's aggregated totals for the Trends (multi-period) view. */
+export interface TrendRow {
+  period: string;
+  income: number;
+  expense: number;
+  /** income - expense. */
+  net: number;
+  /** net as a fraction of income (0 when income is 0). */
+  savingsRate: number;
+}
+
 /** A monthly budget target for a single category. */
 export interface Budget {
   category: string;

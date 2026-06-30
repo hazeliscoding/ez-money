@@ -22,6 +22,12 @@ export const routes: Routes = [
       import('./pages/transactions.component').then((m) => m.TransactionsComponent),
   },
   {
+    path: 'trends',
+    title: 'Trends - ez-money',
+    loadComponent: () =>
+      import('./pages/trends.component').then((m) => m.TrendsComponent),
+  },
+  {
     path: 'budgets',
     title: 'Budgets - ez-money',
     loadComponent: () =>

@@ -130,6 +130,41 @@ describe('SummaryService', () => {
     expect(s.expense).toBe(0);
     expect(s.net).toBe(0);
   });
+
+  it('rolls up every period chronologically with net/savings as a fraction', async () => {
+    // Two extra periods around the seeded Aug 2026, with known totals.
+    await tx.create({ date: '2026-05-15', period: 'May 2026', description: 'Pay', category: 'Income', kind: 'Income', amount: 2000 });
+    await tx.create({ date: '2026-05-16', period: 'May 2026', description: 'Rent', category: 'Rent', kind: 'Expense', amount: 500 });
+    await tx.create({ date: '2026-12-10', period: 'Dec 2026', description: 'Pay', category: 'Income', kind: 'Income', amount: 800 });
+    await tx.create({ date: '2026-12-11', period: 'Dec 2026', description: 'Gifts', category: 'Other', kind: 'Expense', amount: 800 });
+
+    const rows = await summary.trends();
+    const byPeriod = new Map(rows.map((r) => [r.period, r]));
+
+    // chronological: May (oldest) → Aug → Dec (newest)
+    const idxMay = rows.findIndex((r) => r.period === 'May 2026');
+    const idxAug = rows.findIndex((r) => r.period === 'Aug 2026');
+    const idxDec = rows.findIndex((r) => r.period === 'Dec 2026');
+    expect(idxMay).toBeGreaterThanOrEqual(0);
+    expect(idxMay).toBeLessThan(idxAug);
+    expect(idxAug).toBeLessThan(idxDec);
+
+    const may = byPeriod.get('May 2026')!;
+    expect(may.income).toBe(2000);
+    expect(may.expense).toBe(500);
+    expect(may.net).toBe(1500);
+    expect(may.savingsRate).toBeCloseTo(0.75, 5);
+
+    const aug = byPeriod.get('Aug 2026')!;
+    expect(aug.income).toBe(1000);
+    expect(aug.expense).toBe(750);
+    expect(aug.net).toBe(250);
+    expect(aug.savingsRate).toBeCloseTo(0.25, 5);
+
+    const dec = byPeriod.get('Dec 2026')!;
+    expect(dec.net).toBe(0);
+    expect(dec.savingsRate).toBe(0);
+  });
 });
 
 describe('RulesService', () => {

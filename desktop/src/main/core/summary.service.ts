@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm';
 import { Transaction } from './entities/transaction.entity';
 import { Budget } from './entities/budget.entity';
-import type { Summary } from '../../shared/types';
+import type { Summary, TrendRow } from '../../shared/types';
 
 /** Round to 2 decimals (cents) to avoid float drift in displayed totals. */
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -88,5 +88,35 @@ export class SummaryService {
       .sort((a, b) => b.actual - a.actual);
 
     return { period: p, income: round2(income), expense: round2(expense), net, savingsRate, byCategory };
+  }
+
+  /**
+   * One {@link TrendRow} per period across all periods, ordered chronologically
+   * (oldest→newest by earliest transaction date — same ordering as
+   * {@link TransactionsService.periods}). Income/expense/net/savingsRate follow
+   * the exact conventions of {@link forPeriod}: net = income−expense (2dp) and
+   * savingsRate = net/income as a 0–1 fraction (0 when income is 0).
+   *
+   * Done in a single grouped query (rather than N {@link forPeriod} calls) using
+   * conditional sums keyed off `kind`.
+   */
+  async trends(): Promise<TrendRow[]> {
+    const rows = await this.txRepo
+      .createQueryBuilder('t')
+      .select('t.period', 'period')
+      .addSelect('MIN(t.date)', 'min')
+      .addSelect("COALESCE(SUM(CASE WHEN t.kind = 'Income' THEN t.amount ELSE 0 END), 0)", 'income')
+      .addSelect("COALESCE(SUM(CASE WHEN t.kind = 'Expense' THEN t.amount ELSE 0 END), 0)", 'expense')
+      .groupBy('t.period')
+      .orderBy('min', 'ASC')
+      .getRawMany<{ period: string; income: string; expense: string }>();
+
+    return rows.map((r) => {
+      const income = parseFloat(r.income);
+      const expense = parseFloat(r.expense);
+      const net = round2(income - expense);
+      const savingsRate = income > 0 ? net / income : 0;
+      return { period: r.period, income: round2(income), expense: round2(expense), net, savingsRate };
+    });
   }
 }

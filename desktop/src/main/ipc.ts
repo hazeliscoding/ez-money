@@ -37,6 +37,7 @@ export function registerIpc(services: Services, getWindow: () => BrowserWindow |
   );
 
   ipcMain.handle('summary:get', (_e, period) => services.summary.forPeriod(period));
+  ipcMain.handle('summary:trends', () => services.summary.trends());
 
   ipcMain.handle('budgets:list', () => services.budgets.findAll());
   ipcMain.handle('budgets:update', (_e, list) => services.budgets.upsertMany(list ?? []));

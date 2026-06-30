@@ -7,6 +7,7 @@ import {
   Summary,
   Transaction,
   TransactionQuery,
+  TrendRow,
   UpdateTransaction,
 } from './models';
 
@@ -39,6 +40,8 @@ export interface EzApi {
   renamePeriod(oldPeriod: string, newPeriod: string): Promise<{ updated: number }>;
   /** Budget-vs-actual summary for a period (defaults to latest when omitted). */
   summary(period?: string): Promise<Summary>;
+  /** Per-period roll-ups across all periods (oldest→newest) for the Trends view. */
+  trends(): Promise<TrendRow[]>;
   /** Current monthly budgets. */
   budgets(): Promise<Budget[]>;
   /** Replaces stored budgets; resolves with the saved set. */

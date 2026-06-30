@@ -60,6 +60,20 @@ export interface Summary {
   byCategory: CategorySummary[];
 }
 
+/** One period's roll-up for the Trends (multi-period) view. */
+export interface TrendRow {
+  period: string;
+  income: number;
+  expense: number;
+  /** income − expense. */
+  net: number;
+  /** net / income (0 when income is 0). */
+  savingsRate: number;
+}
+
+/** Per-period roll-ups across all periods, ordered chronologically (oldest→newest). */
+export type Trends = TrendRow[];
+
 /** Filters/sort for listing transactions; all fields optional. `q` is free-text. */
 export interface TransactionQuery {
   period?: string;
@@ -124,6 +138,8 @@ export interface EzApi {
   deletePeriod(period: string): Promise<{ deleted: number }>;
   renamePeriod(oldPeriod: string, newPeriod: string): Promise<{ updated: number }>;
   summary(period?: string): Promise<Summary>;
+  /** Per-period roll-ups across all periods (oldest→newest) for the Trends view. */
+  trends(): Promise<TrendRow[]>;
   budgets(): Promise<Budget[]>;
   updateBudgets(list: Budget[]): Promise<Budget[]>;
   getRules(): Promise<RuleSet>;

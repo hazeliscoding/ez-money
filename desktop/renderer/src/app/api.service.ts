@@ -9,6 +9,7 @@ import {
   Summary,
   Transaction,
   TransactionQuery,
+  TrendRow,
   UpdateTransaction,
 } from './models';
 
@@ -86,6 +87,11 @@ export class ApiService {
   /** Budget-vs-actual summary (KPIs + per-category breakdown) for one period. */
   getSummary(period: string): Observable<Summary> {
     return from(this.api.summary(period));
+  }
+
+  /** Per-period roll-ups across all periods (oldest→newest) for the Trends view. */
+  getTrends(): Observable<TrendRow[]> {
+    return from(this.api.trends());
   }
 
   /** Current monthly budget per category. */

@@ -18,6 +18,7 @@ const api: EzApi = {
   deletePeriod: (period) => ipcRenderer.invoke('periods:delete', period),
   renamePeriod: (oldPeriod, newPeriod) => ipcRenderer.invoke('periods:rename', oldPeriod, newPeriod),
   summary: (period) => ipcRenderer.invoke('summary:get', period),
+  trends: () => ipcRenderer.invoke('summary:trends'),
   budgets: () => ipcRenderer.invoke('budgets:list'),
   updateBudgets: (list) => ipcRenderer.invoke('budgets:update', list),
   getRules: () => ipcRenderer.invoke('rules:get'),
