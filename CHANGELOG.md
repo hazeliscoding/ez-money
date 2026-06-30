@@ -1,0 +1,33 @@
+# Changelog
+
+All notable changes to **ez-money**. Releases track the desktop app version
+(`desktop/package.json`); tag `vX.Y.Z` to publish installers via GitHub Actions.
+
+## [0.2.0] — 2026-06-30
+
+First feature-complete release: a self-contained desktop app, all data local.
+
+### Added
+- **Import** Chime statement PDFs — a TypeScript parser extracts the combined
+  activity, strips Credit Builder noise (Moved to/from, Round Ups, card
+  auto-payment, payday-advance wash), and auto-categorizes transactions.
+- **Dashboard** — income vs. spending, net, savings rate, and budget-vs-actual by
+  category for the selected statement period.
+- **Transactions** — filter/sort, inline category edit, add manual/cash entries,
+  edit any field, and delete rows.
+- **Budgets** — editable monthly target per category.
+- **Settings** — rename/delete statement periods and edit the category rules
+  (ordered patterns + exclude list) in-app, with "re-apply to existing".
+- **Local storage** — SQLite (sql.js, pure WASM) in your OS user-data folder; the
+  app makes no network calls for your data.
+- **Packaging** — Windows NSIS installer + Linux AppImage config; Y2K app icon;
+  window/taskbar identity.
+- **Quality** — Vitest suite (parser, rules, services); GitHub Actions CI
+  (test + build) and a tagged Release workflow.
+- **Auto-update** groundwork via electron-updater (GitHub release feed).
+
+### Known limitations
+- Statements supported: **Chime** combined-activity PDFs.
+- Installers are **unsigned** — Windows SmartScreen warns on first run
+  ("More info" → "Run anyway"). macOS is not targeted yet.
+- Auto-update install on Windows is best-effort until the build is code-signed.

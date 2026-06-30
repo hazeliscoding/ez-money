@@ -1,6 +1,6 @@
 {
   "name": "ez-money-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "author": "hazeliscoding",
   "description": "ez-money desktop app (Electron) — import Chime statements, track budgets, all local.",
