@@ -37,11 +37,13 @@
     },
     "files": [
       "dist/**/*",
+      "build/icon.png",
       "package.json",
       "!**/node_modules/canvas/**"
     ],
     "asarUnpack": [
-      "**/*.wasm"
+      "**/*.wasm",
+      "build/icon.png"
     ],
     "win": {
       "target": ["nsis"],
