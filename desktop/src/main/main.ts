@@ -8,6 +8,7 @@
  */
 import 'reflect-metadata';
 import { app, BrowserWindow } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import * as path from 'path';
 import { initServices } from './db';
 import { registerIpc } from './ipc';
@@ -59,6 +60,15 @@ app.whenReady().then(async () => {
   const services = await initServices(dbPath);
   registerIpc(services, () => win);
   await createWindow();
+
+  // Auto-update: packaged builds only (no-op in dev/tests). Reads the GitHub
+  // publish feed baked in at build time; failures are non-fatal. NOTE: until the
+  // installer is code-signed, Windows auto-install is best-effort.
+  if (app.isPackaged) {
+    autoUpdater
+      .checkForUpdatesAndNotify()
+      .catch((err) => console.warn('[ez-money] update check failed:', err));
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
