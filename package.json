@@ -3,6 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "description": "ez-money — a local desktop app (Electron) to import Chime statements and track budgets.",
+  "license": "Apache-2.0",
   "scripts": {
     "setup": "cd desktop && npm install && cd renderer && npm install",
     "dev": "concurrently -k -n web,app -c cyan,green \"npm run dev:web\" \"npm run dev:app\"",

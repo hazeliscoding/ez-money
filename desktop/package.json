@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "author": "hazeliscoding",
+  "license": "Apache-2.0",
   "description": "ez-money desktop app (Electron) — import Chime statements, track budgets, all local.",
   "main": "dist/main/main/main.js",
   "scripts": {
