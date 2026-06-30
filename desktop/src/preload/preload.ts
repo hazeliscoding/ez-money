@@ -25,6 +25,9 @@ const api: EzApi = {
   recategorize: () => ipcRenderer.invoke('transactions:recategorize'),
   importDialog: () => ipcRenderer.invoke('import:dialog'),
   importBytes: (bytes) => ipcRenderer.invoke('import:bytes', bytes),
+  exportCsv: (period) => ipcRenderer.invoke('data:exportCsv', period),
+  backupDatabase: () => ipcRenderer.invoke('data:backup'),
+  openDataFolder: () => ipcRenderer.invoke('data:openFolder'),
 };
 
 contextBridge.exposeInMainWorld('api', api);

@@ -131,4 +131,7 @@ export interface EzApi {
   recategorize(): Promise<{ updated: number }>;
   importDialog(): Promise<ImportResult | { canceled: true }>;
   importBytes(bytes: ArrayBuffer): Promise<ImportResult>;
+  exportCsv(period?: string): Promise<{ saved?: string; count?: number; canceled?: boolean }>;
+  backupDatabase(): Promise<{ saved?: string; canceled?: boolean }>;
+  openDataFolder(): Promise<string>;
 }

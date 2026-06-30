@@ -1,6 +1,9 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import * as path from 'path';
+import { copyFile, writeFile } from 'fs/promises';
 import { Services } from './db';
 import { CATEGORY_PICKLIST } from './core/categories';
+import { toCsv } from './core/export';
 
 /**
  * Register every `ipcMain.handle` channel the renderer invokes. The channel
@@ -40,6 +43,40 @@ export function registerIpc(services: Services, getWindow: () => BrowserWindow |
 
   ipcMain.handle('rules:get', () => services.rules.get());
   ipcMain.handle('rules:save', (_e, ruleset) => services.rules.save(ruleset));
+
+  // --- data: export / backup / locate ---
+  // Export transactions (a period, or all) to a CSV the user picks.
+  ipcMain.handle('data:exportCsv', async (_e, period?: string) => {
+    const rows = await services.transactions.find(period ? { period } : {});
+    const win = getWindow();
+    const opts = {
+      title: 'Export transactions (CSV)',
+      defaultPath: `ez-money-${(period ?? 'all').replace(/\s+/g, '-')}.csv`,
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    };
+    const res = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts);
+    if (res.canceled || !res.filePath) return { canceled: true };
+    await writeFile(res.filePath, toCsv(rows), 'utf-8');
+    return { saved: res.filePath, count: rows.length };
+  });
+
+  // Copy the live SQLite file (kept current by sql.js autoSave) to a chosen path.
+  ipcMain.handle('data:backup', async () => {
+    const dbPath = path.join(app.getPath('userData'), 'ezmoney.sqlite');
+    const win = getWindow();
+    const opts = {
+      title: 'Back up database',
+      defaultPath: 'ezmoney-backup.sqlite',
+      filters: [{ name: 'SQLite database', extensions: ['sqlite'] }],
+    };
+    const res = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts);
+    if (res.canceled || !res.filePath) return { canceled: true };
+    await copyFile(dbPath, res.filePath);
+    return { saved: res.filePath };
+  });
+
+  // Reveal the userData folder (where ezmoney.sqlite + category-rules.json live).
+  ipcMain.handle('data:openFolder', () => shell.openPath(app.getPath('userData')));
 
   ipcMain.handle('import:bytes', (_e, bytes: ArrayBuffer) =>
     services.import.importBytes(new Uint8Array(bytes)),

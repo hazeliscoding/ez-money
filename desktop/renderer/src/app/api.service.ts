@@ -112,4 +112,19 @@ export class ApiService {
   recategorize(): Observable<{ updated: number }> {
     return from(this.api.recategorize());
   }
+
+  /** Exports transactions (a period, or all) to a user-chosen CSV file. */
+  exportCsv(period?: string): Observable<{ saved?: string; count?: number; canceled?: boolean }> {
+    return from(this.api.exportCsv(period));
+  }
+
+  /** Backs up the SQLite database to a user-chosen file. */
+  backupDatabase(): Observable<{ saved?: string; canceled?: boolean }> {
+    return from(this.api.backupDatabase());
+  }
+
+  /** Opens the app's data folder in the OS file manager. */
+  openDataFolder(): Observable<string> {
+    return from(this.api.openDataFolder());
+  }
 }

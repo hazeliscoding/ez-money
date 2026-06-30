@@ -53,6 +53,12 @@ export interface EzApi {
   importDialog(): Promise<ImportResult | { canceled: true }>;
   /** Imports a statement from raw bytes read in the renderer (no file path needed). */
   importBytes(bytes: ArrayBuffer): Promise<ImportResult>;
+  /** Exports transactions (a period, or all) to a user-chosen CSV; `canceled` if dismissed. */
+  exportCsv(period?: string): Promise<{ saved?: string; count?: number; canceled?: boolean }>;
+  /** Copies the SQLite database to a user-chosen file; `canceled` if dismissed. */
+  backupDatabase(): Promise<{ saved?: string; canceled?: boolean }>;
+  /** Reveals the app's data folder in the OS file manager. */
+  openDataFolder(): Promise<string>;
 }
 
 declare global {
