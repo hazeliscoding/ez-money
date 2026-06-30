@@ -120,14 +120,13 @@ interface TxnForm {
               <td>
                 <select
                   class="cell-select"
-                  [value]="t.category"
                   (change)="onCategoryChange(t, $any($event.target).value)"
                 >
                   @if (!categories().includes(t.category)) {
-                    <option [value]="t.category">{{ t.category }}</option>
+                    <option [value]="t.category" [selected]="true">{{ t.category }}</option>
                   }
                   @for (c of categories(); track c) {
-                    <option [value]="c">{{ c }}</option>
+                    <option [value]="c" [selected]="c === t.category">{{ c }}</option>
                   }
                 </select>
               </td>
@@ -185,9 +184,11 @@ interface TxnForm {
               </div>
               <div class="form-field">
                 <label>Category</label>
-                <select [value]="form().category" (change)="patch('category', $any($event.target).value)">
-                  <option value="">—</option>
-                  @for (c of categories(); track c) { <option [value]="c">{{ c }}</option> }
+                <select (change)="patch('category', $any($event.target).value)">
+                  <option value="" [selected]="!form().category">—</option>
+                  @for (c of categories(); track c) {
+                    <option [value]="c" [selected]="c === form().category">{{ c }}</option>
+                  }
                 </select>
               </div>
               <div class="form-field">

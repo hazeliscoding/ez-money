@@ -72,6 +72,18 @@ describe('TransactionsService', () => {
     expect((await tx.find({ period: 'Jun 2026' })).find((r) => r.id === t.id)).toBeUndefined();
   });
 
+  it('updates the category (inline dropdown / edit-modal path)', async () => {
+    const t = await tx.create({
+      date: '2026-10-01', period: 'Oct 2026', description: 'Store',
+      category: 'Other', kind: 'Expense', amount: 10, account: 'Cash',
+    });
+    const returned = await tx.update(t.id, { category: 'Groceries' });
+    expect(returned.category).toBe('Groceries');
+    const row = (await tx.find({ period: 'Oct 2026' })).find((r) => r.id === t.id)!;
+    expect(row.category).toBe('Groceries');
+    await tx.deletePeriod('Oct 2026');
+  });
+
   it('renames and deletes whole periods', async () => {
     await tx.create({ date: '2026-07-01', period: 'Jul 2026', description: 'X', category: 'Other', kind: 'Expense', amount: 1 });
     expect(await tx.periods()).toContain('Jul 2026');
