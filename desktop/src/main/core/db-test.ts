@@ -54,9 +54,36 @@ const PDF =
     check('re-import still 126 (replace)', res2.imported === 126, res2.imported);
     const afterReimport = await svc.transactions.find({ period: 'Jun 2026' });
     check('no duplication after re-import', afterReimport.length === 126, afterReimport.length);
+
+    // --- manual create / full edit ---
+    const created = await svc.transactions.create({
+      date: '2026-07-02', period: 'Jul 2026', description: 'Starbucks',
+      category: 'Other', kind: 'Expense', amount: 6.75, account: 'Cash',
+    });
+    check('manual create', created.id > 0 && created.account === 'Cash', created.id);
+    await svc.transactions.update(created.id, { amount: 9.5, description: 'Starbucks Coffee', date: '2026-07-03' });
+    const edm = (await svc.transactions.find({ period: 'Jul 2026' }))[0];
+    check('full edit (amount/desc/date)',
+      edm.amount === 9.5 && edm.description === 'Starbucks Coffee' && edm.date === '2026-07-03',
+      `${edm.amount}/${edm.description}/${edm.date}`);
+
+    // --- rules store + recategorize ---
+    const baseRules = svc.rules.get();
+    check('rules has defaults', baseRules.rules.length > 0, baseRules.rules.length);
+    svc.rules.save({ ...baseRules, rules: [['starbucks', 'Dining Out'], ...baseRules.rules] });
+    const rc = await svc.transactions.recategorize(svc.rules.get());
+    const recat = (await svc.transactions.find({ period: 'Jul 2026' }))[0];
+    check('recategorize (Starbucks -> Dining Out)', recat.category === 'Dining Out', `${rc.updated}/${recat.category}`);
+
+    // --- period rename + delete ---
+    const ren = await svc.transactions.renamePeriod('Jul 2026', 'July 2026');
+    check('rename period', ren.updated === 1 && (await svc.transactions.periods()).includes('July 2026'), ren.updated);
+    const del = await svc.transactions.deletePeriod('July 2026');
+    check('delete period', del.deleted === 1 && !(await svc.transactions.periods()).includes('July 2026'), del.deleted);
   } finally {
     await svc.dataSource.destroy();
     fs.rmSync(dbPath, { force: true });
+    fs.rmSync(path.join(path.dirname(dbPath), 'category-rules.json'), { force: true });
   }
 
   console.log(ok ? '\nALL DB CHECKS PASSED' : '\nDB TEST FAILED');

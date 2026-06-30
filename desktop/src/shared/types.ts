@@ -68,17 +68,54 @@ export interface ImportResult {
   uncategorized: string[];
 }
 
+/** Fields for a manually-added transaction. */
+export interface NewTransaction {
+  date: string;
+  period: string;
+  description: string;
+  category: string;
+  kind: Kind;
+  amount: number;
+  account?: string;
+  notes?: string;
+}
+
+/** Partial update of a transaction (any field). */
+export interface UpdateTransaction {
+  date?: string;
+  period?: string;
+  description?: string;
+  category?: string;
+  kind?: Kind;
+  amount?: number;
+  account?: string;
+  notes?: string;
+}
+
+/** Editable categorization rules (mirrors category-rules.json). */
+export interface RuleSet {
+  exclude: string[];
+  rules: [string, string][];
+  default: string;
+}
+
 /** The bridge exposed to the renderer as window.api (see preload.ts). */
 export interface EzApi {
   health(): Promise<{ status: string }>;
   categories(): Promise<string[]>;
   periods(): Promise<string[]>;
   listTransactions(query: TransactionQuery): Promise<Transaction[]>;
-  updateTransaction(id: number, patch: { category?: string; notes?: string }): Promise<Transaction>;
+  createTransaction(input: NewTransaction): Promise<Transaction>;
+  updateTransaction(id: number, patch: UpdateTransaction): Promise<Transaction>;
   removeTransaction(id: number): Promise<{ deleted: boolean }>;
+  deletePeriod(period: string): Promise<{ deleted: number }>;
+  renamePeriod(oldPeriod: string, newPeriod: string): Promise<{ updated: number }>;
   summary(period?: string): Promise<Summary>;
   budgets(): Promise<Budget[]>;
   updateBudgets(list: Budget[]): Promise<Budget[]>;
+  getRules(): Promise<RuleSet>;
+  saveRules(rules: RuleSet): Promise<RuleSet>;
+  recategorize(): Promise<{ updated: number }>;
   importDialog(): Promise<ImportResult | { canceled: true }>;
   importBytes(bytes: ArrayBuffer): Promise<ImportResult>;
 }

@@ -1,6 +1,12 @@
 import { Repository } from 'typeorm';
 import { Transaction } from './entities/transaction.entity';
-import type { TransactionQuery } from '../../shared/types';
+import { categorize } from './parser/rules';
+import type {
+  NewTransaction,
+  RuleSet,
+  TransactionQuery,
+  UpdateTransaction,
+} from '../../shared/types';
 
 const SORT_COLUMNS: Record<string, string> = {
   date: 't.date',
@@ -8,6 +14,10 @@ const SORT_COLUMNS: Record<string, string> = {
   description: 't.description',
   category: 't.category',
 };
+
+const EDITABLE: (keyof UpdateTransaction)[] = [
+  'date', 'period', 'description', 'category', 'kind', 'account', 'notes',
+];
 
 export class TransactionsService {
   constructor(private readonly repo: Repository<Transaction>) {}
@@ -26,11 +36,28 @@ export class TransactionsService {
     return qb.getMany();
   }
 
-  async update(id: number, patch: { category?: string; notes?: string }): Promise<Transaction> {
+  create(input: NewTransaction): Promise<Transaction> {
+    const row = this.repo.create({
+      date: input.date,
+      period: input.period,
+      description: input.description ?? '',
+      rawDescription: input.description ?? '',
+      category: input.kind === 'Income' ? 'Income' : input.category || 'Other',
+      kind: input.kind,
+      amount: Math.abs(Number(input.amount) || 0),
+      account: input.account || 'Manual',
+      notes: input.notes ?? '',
+    });
+    return this.repo.save(row);
+  }
+
+  async update(id: number, patch: UpdateTransaction): Promise<Transaction> {
     const txn = await this.repo.findOne({ where: { id } });
     if (!txn) throw new Error(`Transaction ${id} not found`);
-    if (patch.category !== undefined) txn.category = patch.category;
-    if (patch.notes !== undefined) txn.notes = patch.notes;
+    for (const key of EDITABLE) {
+      if (patch[key] !== undefined) (txn as unknown as Record<string, unknown>)[key] = patch[key];
+    }
+    if (patch.amount !== undefined) txn.amount = Math.abs(Number(patch.amount) || 0);
     return this.repo.save(txn);
   }
 
@@ -38,6 +65,41 @@ export class TransactionsService {
     const res = await this.repo.delete({ id });
     if (!res.affected) throw new Error(`Transaction ${id} not found`);
     return { deleted: true };
+  }
+
+  async deletePeriod(period: string): Promise<{ deleted: number }> {
+    const res = await this.repo.delete({ period });
+    return { deleted: res.affected ?? 0 };
+  }
+
+  async renamePeriod(oldPeriod: string, newPeriod: string): Promise<{ updated: number }> {
+    const res = await this.repo
+      .createQueryBuilder()
+      .update(Transaction)
+      .set({ period: newPeriod })
+      .where('period = :oldPeriod', { oldPeriod })
+      .execute();
+    return { updated: res.affected ?? 0 };
+  }
+
+  /** Re-apply categorization rules to every expense (overwrites manual categories). */
+  async recategorize(ruleset: RuleSet): Promise<{ updated: number }> {
+    const rows = await this.repo.find({ where: { kind: 'Expense' } });
+    let updated = 0;
+    for (const t of rows) {
+      const cat = categorize(
+        t.rawDescription || t.description,
+        ruleset.rules,
+        ruleset.default ?? 'Other',
+        'Expense',
+      );
+      if (cat !== t.category) {
+        t.category = cat;
+        await this.repo.save(t);
+        updated++;
+      }
+    }
+    return { updated };
   }
 
   /** Replace all transactions for a period (used when (re)importing a statement). */

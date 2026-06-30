@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import * as path from 'path';
 import { DataSource } from 'typeorm';
 import { Transaction } from './core/entities/transaction.entity';
 import { Budget } from './core/entities/budget.entity';
@@ -6,6 +7,7 @@ import { TransactionsService } from './core/transactions.service';
 import { BudgetsService } from './core/budgets.service';
 import { SummaryService } from './core/summary.service';
 import { ImportService } from './core/import.service';
+import { RulesService } from './core/rules.service';
 
 export interface Services {
   dataSource: DataSource;
@@ -13,6 +15,7 @@ export interface Services {
   budgets: BudgetsService;
   summary: SummaryService;
   import: ImportService;
+  rules: RulesService;
 }
 
 /** Open the SQLite DB at dbPath, run migrations/seed, and wire up services. */
@@ -35,7 +38,9 @@ export async function initServices(dbPath: string): Promise<Services> {
     dataSource.getRepository(Transaction),
     dataSource.getRepository(Budget),
   );
-  const importer = new ImportService(transactions);
+  // The user-editable rules file lives alongside the DB (the userData dir).
+  const rules = new RulesService(path.dirname(dbPath));
+  const importer = new ImportService(transactions, rules);
 
-  return { dataSource, transactions, budgets, summary, import: importer };
+  return { dataSource, transactions, budgets, summary, import: importer, rules };
 }

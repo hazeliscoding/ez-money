@@ -5,14 +5,10 @@
  * 3. Categorize via category-rules.json (ordered, first match wins).
  */
 import rulesJson from './category-rules.json';
-import type { ParsedTransaction } from '../../../shared/types';
+import type { ParsedTransaction, RuleSet } from '../../../shared/types';
 import type { RawTxn } from './parse';
 
-export interface RuleSet {
-  exclude: string[];
-  rules: [string, string][];
-  default: string;
-}
+export type { RuleSet };
 
 const INCOME_LABEL = 'Income';
 

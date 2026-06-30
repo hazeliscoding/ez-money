@@ -1,18 +1,22 @@
 import { parsePdf } from './parser';
 import { TransactionsService } from './transactions.service';
+import { RulesService } from './rules.service';
 import type { ImportResult, ParseResult } from '../../shared/types';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export class ImportService {
-  constructor(private readonly transactions: TransactionsService) {}
+  constructor(
+    private readonly transactions: TransactionsService,
+    private readonly rules: RulesService,
+  ) {}
 
   importPath(filePath: string): Promise<ImportResult> {
-    return parsePdf(filePath).then((p) => this.ingest(p));
+    return parsePdf(filePath, this.rules.get()).then((p) => this.ingest(p));
   }
 
   importBytes(bytes: Uint8Array): Promise<ImportResult> {
-    return parsePdf(bytes).then((p) => this.ingest(p));
+    return parsePdf(bytes, this.rules.get()).then((p) => this.ingest(p));
   }
 
   private async ingest(parsed: ParseResult): Promise<ImportResult> {
