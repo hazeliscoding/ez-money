@@ -6,6 +6,8 @@
   "description": "ez-money desktop app (Electron) — import Chime statements, track budgets, all local.",
   "main": "dist/main/main/main.js",
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:parser": "tsx src/main/core/parser/golden-test.ts",
     "test:db": "tsx src/main/core/db-test.ts",
     "build:main": "tsc -p tsconfig.json",
@@ -26,7 +28,8 @@
     "electron": "^31.7.7",
     "electron-builder": "^25.1.8",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.9"
   },
   "build": {
     "appId": "com.ezmoney.app",
@@ -46,7 +49,9 @@
       "build/icon.png"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.ico",
       "artifactName": "${productName}-${version}-setup.${ext}"
     },
@@ -55,7 +60,9 @@
       "allowToChangeInstallationDirectory": true
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Finance",
       "icon": "build/icon.png",
       "artifactName": "${productName}-${version}.${ext}"
