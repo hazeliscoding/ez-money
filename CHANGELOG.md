@@ -3,6 +3,16 @@
 All notable changes to **ez-money**. Releases track the desktop app version
 (`desktop/package.json`); tag `vX.Y.Z` to publish installers via GitHub Actions.
 
+## [0.2.2] — 2026-06-30
+
+### Fixed
+- **Category edits now display correctly.** The per-row category dropdown reflects
+  the saved value after a reload (edits were always persisted to disk — the
+  dropdown was just redrawing to a stale value), and inline category changes no
+  longer snap back to the old value.
+- **Dashboard percentages.** "% of Budget", "% of Spend", and the Savings Rate now
+  show the real figure (e.g. 47%) instead of rounding 0–1 fractions down to 0%/1%.
+
 ## [0.2.1] — 2026-06-30
 
 ### Added
