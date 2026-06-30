@@ -1,0 +1,55 @@
+name: Release
+
+# Tag a version (e.g. `git tag v0.2.0 && git push --tags`) to build installers
+# for Windows + Linux and publish them to a GitHub Release.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+          - os: ubuntu-latest
+            target: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            desktop/package-lock.json
+            desktop/renderer/package-lock.json
+
+      - name: Install desktop deps
+        working-directory: desktop
+        run: npm ci
+
+      - name: Install renderer deps
+        working-directory: desktop/renderer
+        run: npm ci
+
+      - name: Build renderer (Angular)
+        working-directory: desktop/renderer
+        run: npm run build
+
+      - name: Build main (tsc)
+        working-directory: desktop
+        run: npm run build:main
+
+      - name: Package + publish (electron-builder)
+        working-directory: desktop
+        run: npx electron-builder --${{ matrix.target }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

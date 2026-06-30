@@ -35,6 +35,11 @@
     "appId": "com.ezmoney.app",
     "productName": "ez-money",
     "npmRebuild": false,
+    "publish": {
+      "provider": "github",
+      "owner": "hazeliscoding",
+      "repo": "ez-money"
+    },
     "directories": {
       "output": "release"
     },
