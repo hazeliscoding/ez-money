@@ -1,12 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { of, catchError } from 'rxjs';
+import { Observable, of, catchError } from 'rxjs';
 import { ApiService } from '../api.service';
 import { PeriodService } from '../period.service';
 import { RuleSet } from '../models';
 
 /**
- * Settings page with two sections:
+ * Settings page with three sections:
+ *  - Data: export transactions to CSV, back up the SQLite database, and reveal
+ *    the data folder. All three are native file dialogs handled by the main
+ *    process; the renderer just reports the outcome.
  *  - Periods: rename or delete statement periods (deleting drops all of that
  *    period's transactions). Both push changes through PeriodService.refresh()
  *    so the rest of the app sees them.
@@ -22,6 +25,26 @@ import { RuleSet } from '../models';
   template: `
     <div class="breadcrumb">Settings</div>
     <h1>Settings</h1>
+
+    <div class="section">
+      <h2>Data</h2>
+      <p class="secondary meta">Export transactions to CSV, back up the database, or open the folder where your data is stored.</p>
+
+      @if (dataError()) { <div class="status error">{{ dataError() }}</div> }
+      @if (dataStatus()) { <div class="status ok">{{ dataStatus() }}</div> }
+
+      <div class="actions">
+        <button (click)="exportCurrent()" [disabled]="!periodSvc.selected()">Export current period</button>
+        <button (click)="exportAll()">Export all</button>
+        <button (click)="backup()">Back up database</button>
+        <button (click)="openFolder()">Open data folder</button>
+      </div>
+
+      <p class="secondary meta">
+        The data folder holds <code>ezmoney.sqlite</code> and <code>category-rules.json</code>.
+        To restore a backup, close the app and replace <code>ezmoney.sqlite</code> with your backup file.
+      </p>
+    </div>
 
     <div class="section">
       <h2>Periods</h2>
@@ -158,6 +181,11 @@ export class SettingsComponent {
     { initialValue: [] as string[] },
   );
 
+  // Data. One ok-status / one error signal for the whole Data section; each
+  // action resets both before running so only the latest outcome shows.
+  readonly dataStatus = signal<string | null>(null);
+  readonly dataError = signal<string | null>(null);
+
   // Periods. (The period list itself is read from the shared PeriodService.)
   /** The period currently being renamed inline, or null when none. */
   readonly editingPeriod = signal<string | null>(null);
@@ -190,6 +218,58 @@ export class SettingsComponent {
       },
       error: () => this.rulesError.set('Failed to load category rules.'),
     });
+  }
+
+  // ----- data -----
+  // Each handler clears prior feedback, then maps the native-dialog result to a
+  // status: a user cancel is silent, success shows the saved path, failure errors.
+
+  /** Exports just the currently selected period; the button is disabled when none is selected. */
+  exportCurrent(): void {
+    const period = this.periodSvc.selected();
+    if (!period) return;
+    this.runExport(this.api.exportCsv(period));
+  }
+
+  /** Exports every period to one CSV. */
+  exportAll(): void {
+    this.runExport(this.api.exportCsv());
+  }
+
+  private runExport(req: Observable<{ saved?: string; count?: number; canceled?: boolean }>): void {
+    this.resetData();
+    req.subscribe({
+      next: (res) => {
+        if (res.canceled) return;
+        this.dataStatus.set(`Exported ${res.count ?? 0} transactions to ${res.saved}`);
+      },
+      error: () => this.dataError.set('Failed to export transactions.'),
+    });
+  }
+
+  /** Backs up the SQLite database to a user-chosen file. */
+  backup(): void {
+    this.resetData();
+    this.api.backupDatabase().subscribe({
+      next: (res) => {
+        if (res.canceled) return;
+        this.dataStatus.set(`Backed up to ${res.saved}`);
+      },
+      error: () => this.dataError.set('Failed to back up the database.'),
+    });
+  }
+
+  /** Reveals the data folder in the OS file manager (no meaningful return to show). */
+  openFolder(): void {
+    this.resetData();
+    this.api.openDataFolder().subscribe({
+      error: () => this.dataError.set('Failed to open the data folder.'),
+    });
+  }
+
+  private resetData(): void {
+    this.dataStatus.set(null);
+    this.dataError.set(null);
   }
 
   // ----- periods -----
