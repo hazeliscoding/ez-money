@@ -3,6 +3,17 @@
 All notable changes to **ez-money**. Releases track the desktop app version
 (`desktop/package.json`); tag `vX.Y.Z` to publish installers via GitHub Actions.
 
+## [0.2.1] — 2026-06-30
+
+### Added
+- **Data tools** (Settings → Data): export transactions to CSV (current period or
+  all), back up the SQLite database, and open the data folder. Restore = replace
+  `ezmoney.sqlite` while the app is closed.
+
+### Changed
+- Licensed under **Apache-2.0** (`LICENSE` + `NOTICE`).
+- Added `RELEASING.md` documenting the release + auto-update flow.
+
 ## [0.2.0] — 2026-06-30
 
 First feature-complete release: a self-contained desktop app, all data local.
