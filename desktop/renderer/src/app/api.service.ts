@@ -4,10 +4,12 @@ import {
   Budget,
   HealthResult,
   ImportResult,
+  NewTransaction,
+  RuleSet,
   Summary,
   Transaction,
-  TransactionPatch,
   TransactionQuery,
+  UpdateTransaction,
 } from './models';
 
 /**
@@ -42,12 +44,24 @@ export class ApiService {
     return from(this.api.listTransactions(query));
   }
 
-  patchTransaction(id: number, patch: TransactionPatch): Observable<Transaction> {
+  createTransaction(input: NewTransaction): Observable<Transaction> {
+    return from(this.api.createTransaction(input));
+  }
+
+  patchTransaction(id: number, patch: UpdateTransaction): Observable<Transaction> {
     return from(this.api.updateTransaction(id, patch));
   }
 
   deleteTransaction(id: number): Observable<{ deleted: boolean }> {
     return from(this.api.removeTransaction(id));
+  }
+
+  deletePeriod(period: string): Observable<{ deleted: number }> {
+    return from(this.api.deletePeriod(period));
+  }
+
+  renamePeriod(oldPeriod: string, newPeriod: string): Observable<{ updated: number }> {
+    return from(this.api.renamePeriod(oldPeriod, newPeriod));
   }
 
   getSummary(period: string): Observable<Summary> {
@@ -60,5 +74,17 @@ export class ApiService {
 
   putBudgets(budgets: Budget[]): Observable<Budget[]> {
     return from(this.api.updateBudgets(budgets));
+  }
+
+  getRules(): Observable<RuleSet> {
+    return from(this.api.getRules());
+  }
+
+  saveRules(rules: RuleSet): Observable<RuleSet> {
+    return from(this.api.saveRules(rules));
+  }
+
+  recategorize(): Observable<{ updated: number }> {
+    return from(this.api.recategorize());
   }
 }

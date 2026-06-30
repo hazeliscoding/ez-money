@@ -24,7 +24,14 @@ interface SummaryState {
     <h1>Dashboard</h1>
 
     @if (!periodSvc.hasPeriods()) {
-      <div class="status">No statement periods yet. Use <a routerLink="/import">Import</a> to add a PDF statement.</div>
+      <div class="empty-state">
+        <h2>No data yet</h2>
+        <p>Import a statement or add a transaction to get started.</p>
+        <div class="links">
+          <a routerLink="/import">Import a statement</a>
+          <a routerLink="/transactions">Add a transaction</a>
+        </div>
+      </div>
     } @else {
       <div class="meta">Period: <strong>{{ periodSvc.selected() }}</strong></div>
 
@@ -32,7 +39,7 @@ interface SummaryState {
         <div class="status">Loading summary…</div>
       } @else if (state().error) {
         <div class="status error">{{ state().error }}</div>
-      } @else if (state().data) {
+      } @else if (state().data?.period) {
         @if (state().data; as s) {
         <div class="kpi-row">
           <div class="kpi">
@@ -102,6 +109,15 @@ interface SummaryState {
           }
         </table>
         }
+      } @else {
+        <div class="empty-state">
+          <h2>No data for this period</h2>
+          <p>Import a statement or add a transaction to get started.</p>
+          <div class="links">
+            <a routerLink="/import">Import a statement</a>
+            <a routerLink="/transactions">Add a transaction</a>
+          </div>
+        </div>
       }
     }
   `,

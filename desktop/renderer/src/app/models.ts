@@ -65,3 +65,31 @@ export interface TransactionPatch {
   category?: string;
   notes?: string;
 }
+
+export interface NewTransaction {
+  date: string;
+  period: string;
+  description: string;
+  category: string;
+  kind: TransactionKind;
+  amount: number;
+  account?: string;
+  notes?: string;
+}
+
+export interface UpdateTransaction {
+  date?: string;
+  period?: string;
+  description?: string;
+  category?: string;
+  kind?: TransactionKind;
+  amount?: number;
+  account?: string;
+  notes?: string;
+}
+
+export interface RuleSet {
+  exclude: string[];
+  rules: [string, string][];
+  default: string;
+}

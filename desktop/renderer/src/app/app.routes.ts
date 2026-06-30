@@ -26,5 +26,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/import.component').then((m) => m.ImportComponent),
   },
+  {
+    path: 'settings',
+    title: 'Settings - ez-money',
+    loadComponent: () =>
+      import('./pages/settings.component').then((m) => m.SettingsComponent),
+  },
   { path: '**', redirectTo: 'dashboard' },
 ];

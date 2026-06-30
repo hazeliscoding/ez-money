@@ -5,17 +5,39 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged, switchMap, of, catchError, tap } from 'rxjs';
 import { ApiService } from '../api.service';
 import { PeriodService } from '../period.service';
-import { SortDir, SortField, Transaction, TransactionKind, TransactionQuery } from '../models';
+import {
+  NewTransaction,
+  SortDir,
+  SortField,
+  Transaction,
+  TransactionKind,
+  TransactionQuery,
+  UpdateTransaction,
+} from '../models';
 import { MoneyPipe } from '../money.pipe';
+
+type FormMode = 'add' | 'edit';
+
+interface TxnForm {
+  date: string;
+  period: string;
+  description: string;
+  kind: TransactionKind;
+  category: string;
+  amount: string;
+  account: string;
+  notes: string;
+}
 
 @Component({
   selector: 'app-transactions',
   standalone: true,
-  imports: [MoneyPipe],
+  imports: [MoneyPipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="breadcrumb">Transactions</div>
@@ -52,6 +74,9 @@ import { MoneyPipe } from '../money.pipe';
         <label>Search</label>
         <input type="text" placeholder="description…" [value]="q()" (input)="q.set($any($event.target).value)" />
       </div>
+      <div class="field" style="margin-left:auto">
+        <button class="btn-primary" (click)="openAdd()">Add transaction</button>
+      </div>
     </div>
 
     @if (error()) {
@@ -64,45 +89,119 @@ import { MoneyPipe } from '../money.pipe';
       · sum <strong>{{ sum() | money }}</strong>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th class="sortable" (click)="toggleSort('date')">Date <span class="sort-ind">{{ ind('date') }}</span></th>
-          <th class="sortable" (click)="toggleSort('description')">Description <span class="sort-ind">{{ ind('description') }}</span></th>
-          <th class="sortable" (click)="toggleSort('category')">Category <span class="sort-ind">{{ ind('category') }}</span></th>
-          <th>Account</th>
-          <th class="num sortable" (click)="toggleSort('amount')">Amount <span class="sort-ind">{{ ind('amount') }}</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (t of txns(); track t.id) {
+    @if (txns().length) {
+      <table>
+        <thead>
           <tr>
-            <td>{{ t.date }}</td>
-            <td>{{ t.description }}</td>
-            <td>
-              <select
-                class="cell-select"
-                [value]="t.category"
-                (change)="onCategoryChange(t, $any($event.target).value)"
-              >
-                @if (!categories().includes(t.category)) {
-                  <option [value]="t.category">{{ t.category }}</option>
-                }
-                @for (c of categories(); track c) {
-                  <option [value]="c">{{ c }}</option>
-                }
-              </select>
-            </td>
-            <td>{{ t.account }}</td>
-            <td class="num" [class.pos]="t.kind === 'Income'" [class.neg]="t.kind === 'Expense'">
-              {{ t.amount | money }}
-            </td>
+            <th class="sortable" (click)="toggleSort('date')">Date <span class="sort-ind">{{ ind('date') }}</span></th>
+            <th class="sortable" (click)="toggleSort('description')">Description <span class="sort-ind">{{ ind('description') }}</span></th>
+            <th class="sortable" (click)="toggleSort('category')">Category <span class="sort-ind">{{ ind('category') }}</span></th>
+            <th>Account</th>
+            <th class="num sortable" (click)="toggleSort('amount')">Amount <span class="sort-ind">{{ ind('amount') }}</span></th>
+            <th style="width:120px">Actions</th>
           </tr>
-        } @empty {
-          <tr><td colspan="5" class="muted center">No transactions match the current filters.</td></tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (t of txns(); track t.id) {
+            <tr>
+              <td>{{ t.date }}</td>
+              <td>{{ t.description }}</td>
+              <td>
+                <select
+                  class="cell-select"
+                  [value]="t.category"
+                  (change)="onCategoryChange(t, $any($event.target).value)"
+                >
+                  @if (!categories().includes(t.category)) {
+                    <option [value]="t.category">{{ t.category }}</option>
+                  }
+                  @for (c of categories(); track c) {
+                    <option [value]="c">{{ c }}</option>
+                  }
+                </select>
+              </td>
+              <td>{{ t.account }}</td>
+              <td class="num" [class.pos]="t.kind === 'Income'" [class.neg]="t.kind === 'Expense'">
+                {{ t.amount | money }}
+              </td>
+              <td class="row-actions">
+                <button (click)="openEdit(t)">Edit</button>
+                <button (click)="remove(t)">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if (!loading()) {
+      <div class="empty-state">
+        <h2>No transactions</h2>
+        <p>Import a statement or add a transaction to get started.</p>
+        <div class="links">
+          <a routerLink="/import">Import a statement</a>
+          <button class="btn-primary" (click)="openAdd()">Add transaction</button>
+        </div>
+      </div>
+    }
+
+    @if (formMode(); as mode) {
+      <div class="modal-overlay" (click)="closeForm()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2>{{ mode === 'add' ? 'Add transaction' : 'Edit transaction' }}</h2>
+            <button (click)="closeForm()" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body">
+            @if (formError()) { <div class="status error">{{ formError() }}</div> }
+            <div class="form-grid">
+              <div class="form-field">
+                <label>Date</label>
+                <input type="date" [value]="form().date" (input)="patch('date', $any($event.target).value)" />
+              </div>
+              <div class="form-field">
+                <label>Period</label>
+                <input type="text" [value]="form().period" (input)="patch('period', $any($event.target).value)" placeholder="e.g. 2026-06" />
+              </div>
+              <div class="form-field full">
+                <label>Description</label>
+                <input type="text" [value]="form().description" (input)="patch('description', $any($event.target).value)" />
+              </div>
+              <div class="form-field">
+                <label>Kind</label>
+                <select [value]="form().kind" (change)="patch('kind', $any($event.target).value)">
+                  <option value="Expense">Expense</option>
+                  <option value="Income">Income</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Category</label>
+                <select [value]="form().category" (change)="patch('category', $any($event.target).value)">
+                  <option value="">—</option>
+                  @for (c of categories(); track c) { <option [value]="c">{{ c }}</option> }
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Amount</label>
+                <input type="number" min="0" step="0.01" [value]="form().amount" (input)="patch('amount', $any($event.target).value)" />
+              </div>
+              <div class="form-field">
+                <label>Account</label>
+                <input type="text" [value]="form().account" (input)="patch('account', $any($event.target).value)" />
+              </div>
+              <div class="form-field full">
+                <label>Notes</label>
+                <textarea rows="2" [value]="form().notes" (input)="patch('notes', $any($event.target).value)"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button (click)="closeForm()" [disabled]="saving()">Cancel</button>
+            <button class="btn-primary" (click)="submitForm()" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : (mode === 'add' ? 'Add' : 'Save') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class TransactionsComponent {
@@ -118,6 +217,15 @@ export class TransactionsComponent {
   readonly txns = signal<Transaction[]>([]);
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
+  /** Bumped to force a reload without changing the filter query. */
+  readonly reloadTick = signal<number>(0);
+
+  // Add/edit form state.
+  readonly formMode = signal<FormMode | null>(null);
+  readonly form = signal<TxnForm>(this.emptyForm());
+  readonly editing = signal<Transaction | null>(null);
+  readonly formError = signal<string | null>(null);
+  readonly saving = signal<boolean>(false);
 
   readonly categories = toSignal(this.api.getCategories().pipe(catchError(() => of([] as string[]))), {
     initialValue: [] as string[],
@@ -135,7 +243,7 @@ export class TransactionsComponent {
   readonly sum = computed(() => this.txns().reduce((s, t) => s + t.amount, 0));
 
   constructor() {
-    toObservable(this.query)
+    toObservable(computed(() => ({ query: this.query(), tick: this.reloadTick() })))
       .pipe(
         tap(() => {
           this.loading.set(true);
@@ -143,7 +251,7 @@ export class TransactionsComponent {
         }),
         debounceTime(250),
         distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
-        switchMap((query) =>
+        switchMap(({ query }) =>
           this.api.getTransactions(query).pipe(
             catchError(() => {
               this.error.set('Failed to load transactions.');
@@ -185,5 +293,143 @@ export class TransactionsComponent {
       },
       error: () => this.error.set(`Failed to update category for transaction ${t.id}.`),
     });
+  }
+
+  // ----- add / edit form -----
+
+  patch<K extends keyof TxnForm>(key: K, value: TxnForm[K]): void {
+    this.form.update((f) => ({ ...f, [key]: value }));
+    this.formError.set(null);
+  }
+
+  openAdd(): void {
+    this.editing.set(null);
+    this.formError.set(null);
+    this.form.set({
+      ...this.emptyForm(),
+      date: this.today(),
+      period: this.periodSvc.selected(),
+    });
+    this.formMode.set('add');
+  }
+
+  openEdit(t: Transaction): void {
+    this.editing.set(t);
+    this.formError.set(null);
+    this.form.set({
+      date: t.date,
+      period: t.period,
+      description: t.description,
+      kind: t.kind,
+      category: t.category,
+      amount: String(t.amount),
+      account: t.account,
+      notes: t.notes ?? '',
+    });
+    this.formMode.set('edit');
+  }
+
+  closeForm(): void {
+    if (this.saving()) return;
+    this.formMode.set(null);
+  }
+
+  submitForm(): void {
+    const f = this.form();
+    const amount = parseFloat(f.amount);
+    if (!f.date || !f.description.trim() || isNaN(amount)) {
+      this.formError.set('Date, description, and amount are required.');
+      return;
+    }
+    this.saving.set(true);
+    this.formError.set(null);
+
+    if (this.formMode() === 'add') {
+      const input: NewTransaction = {
+        date: f.date,
+        period: f.period.trim() || this.periodSvc.selected(),
+        description: f.description.trim(),
+        category: f.category,
+        kind: f.kind,
+        amount,
+        account: f.account.trim() || 'Manual',
+        notes: f.notes,
+      };
+      this.api.createTransaction(input).subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.formMode.set(null);
+          this.periodSvc.refresh();
+          this.reloadTick.update((n) => n + 1);
+        },
+        error: () => {
+          this.saving.set(false);
+          this.formError.set('Failed to add transaction.');
+        },
+      });
+      return;
+    }
+
+    const orig = this.editing();
+    if (!orig) {
+      this.saving.set(false);
+      this.formMode.set(null);
+      return;
+    }
+    const patch: UpdateTransaction = {};
+    const account = f.account.trim() || 'Manual';
+    const period = f.period.trim();
+    if (f.date !== orig.date) patch.date = f.date;
+    if (period && period !== orig.period) patch.period = period;
+    if (f.description.trim() !== orig.description) patch.description = f.description.trim();
+    if (f.category !== orig.category) patch.category = f.category;
+    if (f.kind !== orig.kind) patch.kind = f.kind;
+    if (amount !== orig.amount) patch.amount = amount;
+    if (account !== orig.account) patch.account = account;
+    if (f.notes !== orig.notes) patch.notes = f.notes;
+
+    if (Object.keys(patch).length === 0) {
+      this.saving.set(false);
+      this.formMode.set(null);
+      return;
+    }
+    const periodChanged = patch.period !== undefined;
+    this.api.patchTransaction(orig.id, patch).subscribe({
+      next: (updated) => {
+        this.saving.set(false);
+        this.txns.update((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+        this.formMode.set(null);
+        if (periodChanged) this.periodSvc.refresh();
+      },
+      error: () => {
+        this.saving.set(false);
+        this.formError.set('Failed to save changes.');
+      },
+    });
+  }
+
+  remove(t: Transaction): void {
+    if (!window.confirm(`Delete "${t.description}" (${t.date})? This cannot be undone.`)) return;
+    this.api.deleteTransaction(t.id).subscribe({
+      next: () => this.txns.update((list) => list.filter((x) => x.id !== t.id)),
+      error: () => this.error.set(`Failed to delete transaction ${t.id}.`),
+    });
+  }
+
+  private emptyForm(): TxnForm {
+    return {
+      date: '',
+      period: '',
+      description: '',
+      kind: 'Expense',
+      category: '',
+      amount: '',
+      account: 'Manual',
+      notes: '',
+    };
+  }
+
+  private today(): string {
+    return new Date().toISOString().slice(0, 10);
   }
 }
