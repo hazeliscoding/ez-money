@@ -164,27 +164,27 @@ interface TxnForm {
             @if (formError()) { <div class="status error">{{ formError() }}</div> }
             <div class="form-grid">
               <div class="form-field">
-                <label>Date</label>
-                <input type="date" [value]="form().date" (input)="patch('date', $any($event.target).value)" />
+                <label for="txn-date">Date</label>
+                <input id="txn-date" type="date" [value]="form().date" (input)="patch('date', $any($event.target).value)" />
               </div>
               <div class="form-field">
-                <label>Period</label>
-                <input type="text" [value]="form().period" (input)="patch('period', $any($event.target).value)" placeholder="e.g. 2026-06" />
+                <label for="txn-period">Period</label>
+                <input id="txn-period" type="text" [value]="form().period" (input)="patch('period', $any($event.target).value)" placeholder="e.g. 2026-06" />
               </div>
               <div class="form-field full">
-                <label>Description</label>
-                <input type="text" [value]="form().description" (input)="patch('description', $any($event.target).value)" />
+                <label for="txn-description">Description</label>
+                <input id="txn-description" type="text" [value]="form().description" (input)="patch('description', $any($event.target).value)" />
               </div>
               <div class="form-field">
-                <label>Kind</label>
-                <select [value]="form().kind" (change)="patch('kind', $any($event.target).value)">
+                <label for="txn-kind">Kind</label>
+                <select id="txn-kind" [value]="form().kind" (change)="patch('kind', $any($event.target).value)">
                   <option value="Expense">Expense</option>
                   <option value="Income">Income</option>
                 </select>
               </div>
               <div class="form-field">
-                <label>Category</label>
-                <select (change)="patch('category', $any($event.target).value)">
+                <label for="txn-category">Category</label>
+                <select id="txn-category" (change)="patch('category', $any($event.target).value)">
                   <option value="" [selected]="!form().category">—</option>
                   @for (c of categories(); track c) {
                     <option [value]="c" [selected]="c === form().category">{{ c }}</option>
@@ -192,16 +192,16 @@ interface TxnForm {
                 </select>
               </div>
               <div class="form-field">
-                <label>Amount</label>
-                <input type="number" min="0" step="0.01" [value]="form().amount" (input)="patch('amount', $any($event.target).value)" />
+                <label for="txn-amount">Amount</label>
+                <input id="txn-amount" type="number" min="0" step="0.01" [value]="form().amount" (input)="patch('amount', $any($event.target).value)" />
               </div>
               <div class="form-field">
-                <label>Account</label>
-                <input type="text" [value]="form().account" (input)="patch('account', $any($event.target).value)" />
+                <label for="txn-account">Account</label>
+                <input id="txn-account" type="text" [value]="form().account" (input)="patch('account', $any($event.target).value)" />
               </div>
               <div class="form-field full">
-                <label>Notes</label>
-                <textarea rows="2" [value]="form().notes" (input)="patch('notes', $any($event.target).value)"></textarea>
+                <label for="txn-notes">Notes</label>
+                <textarea id="txn-notes" rows="2" [value]="form().notes" (input)="patch('notes', $any($event.target).value)"></textarea>
               </div>
             </div>
           </div>
