@@ -12,6 +12,7 @@
     "test:parser": "tsx src/main/core/parser/golden-test.ts",
     "test:db": "tsx src/main/core/db-test.ts",
     "build:main": "tsc -p tsconfig.json",
+    "e2e": "playwright test",
     "start": "electron .",
     "smoke": "electron dist/main/main/smoke.js",
     "package": "electron-builder",
@@ -26,6 +27,7 @@
     "typeorm": "^1.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20.11.0",
     "electron": "^31.7.7",
     "electron-builder": "^25.1.8",

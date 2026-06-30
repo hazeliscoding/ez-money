@@ -50,3 +50,8 @@ yarn-error.log*
 # Local SQLite databases
 *.sqlite
 *.sqlite-journal
+
+# Playwright (E2E) output
+playwright-report/
+test-results/
+.playwright/
