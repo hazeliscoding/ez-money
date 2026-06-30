@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { PercentPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { of, switchMap, startWith, catchError, map } from 'rxjs';
@@ -24,7 +24,7 @@ interface SummaryState {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [MoneyPipe, DecimalPipe, RouterLink],
+  imports: [MoneyPipe, PercentPipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="breadcrumb">Dashboard</div>
@@ -64,7 +64,7 @@ interface SummaryState {
           <div class="kpi">
             <div class="kpi-label">Savings Rate</div>
             <div class="kpi-value" [class.pos]="s.savingsRate >= 0" [class.neg]="s.savingsRate < 0">
-              {{ s.savingsRate | number: '1.0-1' }}%
+              {{ s.savingsRate | percent: '1.0-1' }}
             </div>
           </div>
         </div>
@@ -95,8 +95,8 @@ interface SummaryState {
                   </div>
                 </td>
                 <td class="num" [class.over]="row.remaining < 0">{{ row.remaining | money }}</td>
-                <td class="num" [class.over]="row.remaining < 0">{{ row.pctBudget | number: '1.0-0' }}%</td>
-                <td class="num">{{ row.pctSpend | number: '1.0-0' }}%</td>
+                <td class="num" [class.over]="row.remaining < 0">{{ row.pctBudget | percent: '1.0-0' }}</td>
+                <td class="num">{{ row.pctSpend | percent: '1.0-0' }}</td>
               </tr>
             } @empty {
               <tr><td colspan="6" class="muted center">No category data for this period.</td></tr>
@@ -109,7 +109,7 @@ interface SummaryState {
                 <td class="num">{{ totals().budget | money }}</td>
                 <td class="num">{{ totals().actual | money }}</td>
                 <td class="num" [class.over]="totals().remaining < 0">{{ totals().remaining | money }}</td>
-                <td class="num">{{ totals().pctBudget | number: '1.0-0' }}%</td>
+                <td class="num">{{ totals().pctBudget | percent: '1.0-0' }}</td>
                 <td class="num">100%</td>
               </tr>
             </tfoot>
@@ -166,13 +166,17 @@ export class DashboardComponent {
     return [...data.byCategory].sort((a, b) => b.actual - a.actual);
   });
 
-  /** Footer totals across all category rows; pctBudget guards divide-by-zero. */
+  /**
+   * Footer totals across all category rows. `pctBudget` is a 0–1 fraction (the
+   * `percent` pipe scales it for display), matching the per-row `pctBudget` from
+   * the summary service; guards divide-by-zero.
+   */
   readonly totals = computed(() => {
     const list = this.rows();
     const budget = list.reduce((s, r) => s + r.budget, 0);
     const actual = list.reduce((s, r) => s + r.actual, 0);
     const remaining = budget - actual;
-    const pctBudget = budget > 0 ? (actual / budget) * 100 : 0;
+    const pctBudget = budget > 0 ? actual / budget : 0;
     return { budget, actual, remaining, pctBudget };
   });
 
