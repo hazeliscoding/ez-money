@@ -62,7 +62,12 @@
         "nsis"
       ],
       "icon": "build/icon.ico",
-      "artifactName": "${productName}-${version}-setup.${ext}"
+      "artifactName": "${productName}-${version}-setup.${ext}",
+      "azureSignOptions": {
+        "endpoint": "https://eus.codesigning.azure.net/",
+        "codeSigningAccountName": "ezmoney-signing",
+        "certificateProfileName": "EZMoneyCert"
+      }
     },
     "nsis": {
       "oneClick": false,

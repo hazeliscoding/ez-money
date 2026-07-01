@@ -53,3 +53,9 @@ jobs:
         run: npx electron-builder --${{ matrix.target }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Azure Trusted Signing (Windows leg only; ignored on Linux). electron-builder
+          # authenticates via EnvironmentCredential and auto-installs the TrustedSigning
+          # PowerShell module on the runner. See desktop/package.json > build.win.azureSignOptions.
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
