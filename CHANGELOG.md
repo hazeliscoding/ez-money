@@ -3,6 +3,25 @@
 All notable changes to **ez-money**. Releases track the desktop app version
 (`desktop/package.json`); tag `vX.Y.Z` to publish installers via GitHub Actions.
 
+## [0.3.0] — 2026-07-01
+
+### Added
+- **Trends** page — a multi-period overview: income, spending, net, and savings
+  rate per statement period, with an income-vs-spending bar chart.
+
+### Changed
+- **Smarter statement import.** Chime Checking/Savings statements are now detected
+  and clearly declined (the Credit "Combined Account Activity" already includes
+  those transactions — importing them too would double-count), and unreadable or
+  unrecognized PDFs get specific messages instead of a generic failure.
+- **Better categorization.** More built-in rules mean fewer transactions land in
+  "Other"; internal transfers to Chime Savings/Checking are no longer miscounted
+  as spending. Uncategorized merchants now point to Settings → Category rules.
+
+### Internal
+- End-to-end test suite (Playwright + Electron) running in CI, including a
+  regression for category edits surviving a restart.
+
 ## [0.2.2] — 2026-06-30
 
 ### Fixed
