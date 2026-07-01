@@ -13,11 +13,15 @@
 
     ["h e b gas", "Transportation & Gas"],
     ["buc ee", "Transportation & Gas"],
+    ["circle k", "Transportation & Gas"],
+    ["gorilla touchless", "Transportation & Gas"],
 
     ["h e b", "Groceries"],
     ["hellofresh", "Groceries"],
     ["wm supercenter", "Groceries"],
     ["walmart", "Groceries"],
+    ["huel", "Groceries"],
+    ["broadway grocery", "Groceries"],
 
     ["doordash", "Dining Out"],
     ["domino", "Dining Out"],
@@ -29,6 +33,10 @@
     ["popeye", "Dining Out"],
     ["pizza hut", "Dining Out"],
     ["pizzahut", "Dining Out"],
+    ["jollibee", "Dining Out"],
+    ["marble slab", "Dining Out"],
+    ["sumo japanese", "Dining Out"],
+    ["sakana sushi", "Dining Out"],
 
     ["amazon web services", "Subscriptions"],
     ["prime video", "Subscriptions"],
@@ -54,6 +62,9 @@
     ["google *google one", "Subscriptions"],
     ["brilliant", "Subscriptions"],
     ["discord", "Subscriptions"],
+    ["rocket money", "Subscriptions"],
+    ["udemy", "Subscriptions"],
+    ["hidive", "Subscriptions"],
 
     ["square enix", "Entertainment & Games"],
     ["steam", "Entertainment & Games"],
@@ -64,6 +75,8 @@
     ["hopscotch", "Entertainment & Games"],
     ["pixiv", "Entertainment & Games"],
     ["hatsune miku", "Entertainment & Games"],
+    ["seeticket", "Entertainment & Games"],
+    ["tik tok videos", "Entertainment & Games"],
 
     ["amazon", "Shopping"],
     ["amzn", "Shopping"],
@@ -79,9 +92,18 @@
     ["dhlexpress", "Shopping"],
     ["dhl", "Shopping"],
     ["genderfluent", "Shopping"],
+    ["e bay", "Shopping"],
+    ["home depot", "Shopping"],
+    ["ikea", "Shopping"],
+    ["h&m", "Shopping"],
+    ["sephora", "Shopping"],
+    ["barnes & noble", "Shopping"],
+    ["twin liquors", "Shopping"],
+    ["tiktok shop", "Shopping"],
 
     ["dominion health", "Health & Fitness"],
     ["planet fitness", "Health & Fitness"],
+    ["counselin", "Health & Fitness"],
 
     ["chewy", "Pets"],
     ["petsmart", "Pets"],
@@ -93,7 +115,12 @@
     ["prosper", "Debt & Loan Payments"],
     ["instant loan payment", "Debt & Loan Payments"],
     ["instant advance fee", "Debt & Loan Payments"],
-    ["my pay instant advance", "Debt & Loan Payments"]
+    ["my pay instant advance", "Debt & Loan Payments"],
+    ["affirm", "Debt & Loan Payments"],
+    ["capital one", "Debt & Loan Payments"],
+    ["credit one", "Debt & Loan Payments"],
+    ["sofi", "Debt & Loan Payments"],
+    ["pypl payin4", "Debt & Loan Payments"]
   ],
   "default": "Other"
 }

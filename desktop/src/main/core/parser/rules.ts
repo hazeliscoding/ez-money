@@ -31,6 +31,10 @@ export function isPlumbing(raw: RawTxn): boolean {
   if (d.startsWith('moved to') || d.startsWith('moved from')) return true;
   if (t === 'payment' || d.includes('card payment')) return true;
   if (d.includes('my pay advance') || d.includes('my pay repayment')) return true;
+  // Internal transfers between the user's own Chime accounts aren't real
+  // income/spending. Chime labels them a few ways, e.g. "Transfer to Chime
+  // Savings Account" / "Transfer to/from Savings".
+  if (d.includes('chime savings account') || d.includes('chime checking account')) return true;
   if (d.startsWith('transfer from savings') || d.startsWith('transfer to savings')) return true;
   if (d.includes('spotme')) return true;
   if (d.includes('round up to savings')) return true;

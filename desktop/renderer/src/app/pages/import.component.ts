@@ -72,9 +72,10 @@ import { MoneyPipe } from '../money.pipe';
           <div class="section">
             <h3>Uncategorized Merchants ({{ r.uncategorized.length }})</h3>
             <p class="secondary">
-              These merchants had no matching rule. Set a category on the
-              <a routerLink="/transactions">Transactions</a> page, or add a rule in
-              <code>category-rules.json</code> to auto-categorize them next time.
+              These merchants had no matching rule and were filed under <strong>Other</strong>.
+              Re-categorize them on the <a routerLink="/transactions">Transactions</a> page, or
+              add rules under <a routerLink="/settings">Settings → Category rules</a> and
+              re-import to auto-categorize them next time.
             </p>
             <ul class="plain">
               @for (m of r.uncategorized; track m) {
@@ -167,7 +168,10 @@ export class ImportComponent {
       },
       error: (err) => {
         this.uploading.set(false);
-        const detail = String(err?.message ?? err ?? '').replace(/^Error invoking remote method '[^']*':\s*/, '');
+        const detail = String(err?.message ?? err ?? '')
+          .replace(/^Error invoking remote method '[^']*':\s*/, '')
+          .replace(/^Error:\s*/, '')
+          .trim();
         this.error.set(detail ? `Import failed: ${detail}` : 'Import failed — is this a valid Chime statement PDF?');
       },
     });

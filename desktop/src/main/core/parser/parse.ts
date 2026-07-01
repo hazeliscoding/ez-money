@@ -67,6 +67,26 @@ export function detectPeriod(lines: string[]): string | null {
   return null;
 }
 
+/** Which kind of Chime statement a PDF is — drives accept vs. reject on import. */
+export type StatementType = 'combined' | 'checking' | 'savings' | 'unknown';
+
+/**
+ * Classify a statement by its title line. Only the **Combined Account Activity**
+ * statement (on the Credit Builder statement) is supported: it already spans
+ * every account (Checking, Chime Card, Secured Deposit), so importing the
+ * standalone Checking/Savings statements too would double-count the same
+ * transactions under a different (calendar-month vs. billing-cycle) period.
+ * "Combined" is checked first so a Credit statement that merely mentions the word
+ * "Checking" in a row isn't misclassified.
+ */
+export function detectStatementType(lines: string[]): StatementType {
+  const text = lines.join('\n');
+  if (/Combined Account Activity/i.test(text)) return 'combined';
+  if (/Checking Account Statement/i.test(text)) return 'checking';
+  if (/Savings Account Statement/i.test(text)) return 'savings';
+  return 'unknown';
+}
+
 /**
  * Extract every Combined-Activity transaction from the page lines. The strict
  * 6-field {@link LINE} regex is the filter: only six-field rows match, so the

@@ -29,6 +29,8 @@ describe('isPlumbing', () => {
     expect(isPlumbing(raw({ description: 'My Pay Repayment', statementType: 'Adjustment', amount: -500 }))).toBe(true);
     expect(isPlumbing(raw({ description: 'Transfer from SpotMe Line of Credit', statementType: 'Transfer', amount: 16.2 }))).toBe(true);
     expect(isPlumbing(raw({ description: 'Transfer from Savings Account', statementType: 'Transfer', amount: 8.42 }))).toBe(true);
+    expect(isPlumbing(raw({ description: 'Transfer to Chime Savings Account', statementType: 'Transfer', amount: -600 }))).toBe(true);
+    expect(isPlumbing(raw({ description: 'Transfer to Chime Checking Account', statementType: 'Transfer', amount: 38 }))).toBe(true);
   });
 
   it('keeps real purchases, the advance fee, and external person-to-person transfers', () => {

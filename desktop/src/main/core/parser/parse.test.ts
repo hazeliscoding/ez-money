@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectPeriod, parseRawTransactions } from './parse';
+import { detectPeriod, detectStatementType, parseRawTransactions } from './parse';
 
 // A handful of representative Combined-Activity lines plus chrome the parser
 // must ignore (the period heading, a page footer, and a 5-field billing row).
@@ -20,6 +20,24 @@ describe('detectPeriod', () => {
   });
   it('returns null when no heading is present', () => {
     expect(detectPeriod(['Page 1 of 22', 'random text'])).toBeNull();
+  });
+});
+
+describe('detectStatementType', () => {
+  it('recognizes the supported Combined Account Activity statement', () => {
+    expect(detectStatementType(['Combined Account Activity Statement', 'Statement period'])).toBe('combined');
+  });
+  it('flags Checking and Savings statements as unsupported', () => {
+    expect(detectStatementType(['Checking Account Statement'])).toBe('checking');
+    expect(detectStatementType(['Savings Account Statement'])).toBe('savings');
+  });
+  it('returns unknown for an unrelated document', () => {
+    expect(detectStatementType(['Some Other Bank Monthly Statement'])).toBe('unknown');
+  });
+  it('prefers combined even when a row mentions Checking', () => {
+    expect(
+      detectStatementType(['Combined Account Activity Statement', '6/1/2026 Foo Purchase -$1.00 Checking 6/1/2026']),
+    ).toBe('combined');
   });
 });
 
