@@ -3,6 +3,21 @@
 All notable changes to **ez-money**. Releases track the desktop app version
 (`desktop/package.json`); tag `vX.Y.Z` to publish installers via GitHub Actions.
 
+## [1.0.0] — 2026-07-01
+
+First stable release. 🎉
+
+### Added
+- **Signed Windows installer** via Azure Trusted Signing — no more SmartScreen
+  "unknown publisher" warning on install, and reliable Windows auto-update.
+
+### Notes
+1.0 rolls up everything since the 0.2 line: import Chime Credit Builder statements,
+a dashboard with budget-vs-actual, editable budgets, the multi-period **Trends**
+view, smart/safe import (Checking/Savings detection, graceful errors, richer
+categorization), CSV export + SQLite backup, and an end-to-end test suite. All your
+data stays local — no account, no server.
+
 ## [0.3.0] — 2026-07-01
 
 ### Added
