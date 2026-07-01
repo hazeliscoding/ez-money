@@ -3,6 +3,14 @@
 All notable changes to **ez-money**. Releases track the desktop app version
 (`desktop/package.json`); tag `vX.Y.Z` to publish installers via GitHub Actions.
 
+## [1.0.1] — 2026-07-01
+
+### Fixed
+- **Timestamp the Windows code signature.** Azure Trusted Signing certificates are
+  short-lived, so the Authenticode signature is now RFC-3161 timestamped — it stays
+  valid after the signing certificate rotates. (1.0.0 was correctly signed but not
+  timestamped.)
+
 ## [1.0.0] — 2026-07-01
 
 First stable release. 🎉
